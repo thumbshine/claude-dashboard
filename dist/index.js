@@ -246,6 +246,12 @@ function getColorForPercent(percent) {
 function colorize(text, color) {
   return `${color}${text}${RESET}`;
 }
+function stripAnsi(str) {
+  return str.replace(/\x1b\[[0-9;]*m/g, "");
+}
+function getVisualWidth(str) {
+  return stripAnsi(str).length;
+}
 function getSeparator() {
   return ` ${getTheme().dim}\u2502${RESET} `;
 }
@@ -316,7 +322,7 @@ function hashToken(token) {
 }
 
 // scripts/version.ts
-var VERSION = "1.13.1";
+var VERSION = "1.14.0";
 
 // scripts/utils/api-client.ts
 var API_TIMEOUT_MS = 5e3;
@@ -775,6 +781,7 @@ function renderProgressBar(percent, config = DEFAULT_PROGRESS_BAR_CONFIG) {
 }
 
 // scripts/widgets/context.ts
+var COMPACT_PROGRESS_BAR_WIDTH = 6;
 var contextWidget = {
   id: "context",
   name: "Context",
@@ -805,12 +812,15 @@ var contextWidget = {
   },
   render(data, ctx) {
     const parts = [];
-    parts.push(renderProgressBar(data.percentage));
+    const barConfig = ctx.compact ? { ...DEFAULT_PROGRESS_BAR_CONFIG, width: COMPACT_PROGRESS_BAR_WIDTH } : void 0;
+    parts.push(renderProgressBar(data.percentage, barConfig));
     const percentColor = getColorForPercent(data.percentage);
     parts.push(colorize(`${data.percentage}%`, percentColor));
-    parts.push(
-      `${formatTokens(data.inputTokens)}/${formatTokens(data.contextSize)}`
-    );
+    if (!ctx.compact) {
+      parts.push(
+        `${formatTokens(data.inputTokens)}/${formatTokens(data.contextSize)}`
+      );
+    }
     return parts.join(getSeparator());
   }
 };
@@ -838,7 +848,7 @@ function renderRateLimit(data, ctx, labelKey) {
   const { translations: t } = ctx;
   const color = getColorForPercent(data.utilization);
   const label = `${t.labels[labelKey]}: ${colorize(`${data.utilization}%`, color)}`;
-  if (!data.resetsAt)
+  if (ctx.compact || !data.resetsAt)
     return label;
   return `${label} (${formatTimeRemaining(data.resetsAt, t)})`;
 }
@@ -899,6 +909,7 @@ var rateLimit7dSonnetWidget = {
 // scripts/widgets/project-info.ts
 import { execFile } from "child_process";
 import { basename } from "path";
+var COMPACT_DIR_MAX_LENGTH = 10;
 function execGit(args, cwd, timeout) {
   return new Promise((resolve, reject) => {
     execFile("git", ["--no-optional-locks", ...args], {
@@ -975,10 +986,14 @@ var projectInfoWidget = {
       behind
     };
   },
-  render(data) {
+  render(data, ctx) {
     const theme = getTheme();
     const parts = [];
-    parts.push(colorize(`\u{1F4C1} ${data.dirName}`, theme.folder));
+    let dirName = data.dirName;
+    if (ctx.compact && dirName.length > COMPACT_DIR_MAX_LENGTH) {
+      dirName = dirName.slice(0, COMPACT_DIR_MAX_LENGTH - 1) + "\u2026";
+    }
+    parts.push(colorize(`\u{1F4C1} ${dirName}`, theme.folder));
     if (data.gitBranch) {
       let branchStr = data.gitBranch;
       const aheadStr = (data.ahead ?? 0) > 0 ? `\u2191${data.ahead}` : "";
@@ -1074,6 +1089,17 @@ var configCountsWidget = {
   render(data, ctx) {
     const { translations: t } = ctx;
     const parts = [];
+    if (ctx.compact) {
+      if (data.claudeMd > 0)
+        parts.push(`C:${data.claudeMd}`);
+      if (data.rules > 0)
+        parts.push(`R:${data.rules}`);
+      if (data.mcps > 0)
+        parts.push(`M:${data.mcps}`);
+      if (data.hooks > 0)
+        parts.push(`H:${data.hooks}`);
+      return colorize(parts.join(" "), getTheme().secondary);
+    }
     if (data.claudeMd > 0) {
       parts.push(`${t.widgets.claudeMd}: ${data.claudeMd}`);
     }
@@ -1404,6 +1430,12 @@ var toolActivityWidget = {
   render(data, ctx) {
     const { translations: t } = ctx;
     const theme = getTheme();
+    if (ctx.compact) {
+      if (data.running.length === 0) {
+        return colorize(`\u2699\uFE0F ${data.completed}\u2713`, theme.secondary);
+      }
+      return `${colorize("\u2699\uFE0F", theme.warning)} ${data.running.length}\u25B6${data.completed}\u2713`;
+    }
     if (data.running.length === 0) {
       return colorize(
         `${t.widgets.tools}: ${data.completed} ${t.widgets.done}`,
@@ -1438,6 +1470,12 @@ var agentStatusWidget = {
   render(data, ctx) {
     const { translations: t } = ctx;
     const theme = getTheme();
+    if (ctx.compact) {
+      if (data.active.length === 0) {
+        return colorize(`\u{1F916} ${data.completed}\u2713`, theme.secondary);
+      }
+      return `${colorize("\u{1F916}", theme.info)} ${data.active.length}\u25B6${data.completed}\u2713`;
+    }
     if (data.active.length === 0) {
       return colorize(
         `${t.widgets.agent}: ${data.completed} ${t.widgets.done}`,
@@ -1475,7 +1513,7 @@ var todoProgressWidget = {
     }
     const percent = calculatePercent(data.completed, data.total);
     const color = getColorForPercent(100 - percent);
-    if (data.current) {
+    if (data.current && !ctx.compact) {
       const taskName = data.current.content.length > 15 ? data.current.content.slice(0, 15) + "..." : data.current.content;
       return `${colorize("\u2713", theme.safe)} ${taskName} [${data.completed}/${data.total}]`;
     }
@@ -1514,7 +1552,10 @@ var burnRateWidget = {
     }
     return { tokensPerMinute };
   },
-  render(data) {
+  render(data, ctx) {
+    if (ctx.compact) {
+      return `\u{1F525} ${formatTokens(Math.round(data.tokensPerMinute))}/m`;
+    }
     return `\u{1F525} ${formatTokens(Math.round(data.tokensPerMinute))}/min`;
   }
 };
@@ -1546,8 +1587,12 @@ var depletionTimeWidget = {
     };
   },
   render(data, ctx) {
-    const duration = formatDuration(data.minutesToLimit * 60 * 1e3, ctx.translations.time);
-    return colorize(`\u23F3 ~${duration} to ${data.limitType}`, getTheme().warning);
+    const { translations: t } = ctx;
+    const duration = formatDuration(data.minutesToLimit * 60 * 1e3, t.time);
+    if (ctx.compact) {
+      return colorize(`\u23F3 ~${duration}`, getTheme().warning);
+    }
+    return colorize(`\u23F3 ~${duration} ${t.widgets.toLimit} ${data.limitType}`, getTheme().warning);
   }
 };
 
@@ -1779,11 +1824,11 @@ async function fetchFromCodexApi(auth) {
 }
 
 // scripts/widgets/codex-usage.ts
-function formatRateLimit(label, percent, resetAt, t) {
+function formatRateLimit(label, percent, resetAt, ctx) {
   const color = getColorForPercent(percent);
   let result = `${label}: ${colorize(`${Math.round(percent)}%`, color)}`;
-  if (resetAt) {
-    const resetTime = formatTimeRemaining(new Date(resetAt * 1e3), t);
+  if (!ctx.compact && resetAt) {
+    const resetTime = formatTimeRemaining(new Date(resetAt * 1e3), ctx.translations);
     if (resetTime) {
       result += ` (${resetTime})`;
     }
@@ -1823,17 +1868,17 @@ var codexUsageWidget = {
   },
   render(data, ctx) {
     const { translations: t } = ctx;
-    const parts = [];
     const theme = getTheme();
+    const parts = [];
     parts.push(`${colorize("\u{1F537}", theme.info)} ${data.model}`);
     if (data.isError) {
       parts.push(colorize("\u26A0\uFE0F", theme.warning));
     } else {
       if (data.primaryPercent !== null) {
-        parts.push(formatRateLimit(t.labels["5h"], data.primaryPercent, data.primaryResetAt, t));
+        parts.push(formatRateLimit(t.labels["5h"], data.primaryPercent, data.primaryResetAt, ctx));
       }
       if (data.secondaryPercent !== null) {
-        parts.push(formatRateLimit(t.labels["7d"], data.secondaryPercent, data.secondaryResetAt, t));
+        parts.push(formatRateLimit(t.labels["7d"], data.secondaryPercent, data.secondaryResetAt, ctx));
       }
     }
     return parts.join(` ${colorize("\u2502", theme.dim)} `);
@@ -2214,11 +2259,11 @@ async function fetchFromGeminiApi(credentials, projectId) {
 }
 
 // scripts/widgets/gemini-usage.ts
-function formatUsage(percent, resetAt, t) {
+function formatUsage(percent, resetAt, ctx) {
   const color = getColorForPercent(percent);
   let result = colorize(`${Math.round(percent)}%`, color);
-  if (resetAt) {
-    const resetTime = formatTimeRemaining(new Date(resetAt), t);
+  if (!ctx.compact && resetAt) {
+    const resetTime = formatTimeRemaining(new Date(resetAt), ctx.translations);
     if (resetTime) {
       result += ` (${resetTime})`;
     }
@@ -2251,14 +2296,13 @@ var geminiUsageWidget = {
     };
   },
   render(data, ctx) {
-    const { translations: t } = ctx;
-    const parts = [];
     const theme = getTheme();
+    const parts = [];
     parts.push(`${colorize("\u{1F48E}", theme.info)} ${data.model}`);
     if (data.isError) {
       parts.push(colorize("\u26A0\uFE0F", theme.warning));
     } else if (data.usedPercent !== null) {
-      parts.push(formatUsage(data.usedPercent, data.resetAt, t));
+      parts.push(formatUsage(data.usedPercent, data.resetAt, ctx));
     }
     return parts.join(` ${colorize("\u2502", theme.dim)} `);
   }
@@ -2289,7 +2333,6 @@ var geminiUsageAllWidget = {
     };
   },
   render(data, ctx) {
-    const { translations: t } = ctx;
     const theme = getTheme();
     if (data.isError) {
       return `${colorize("\u{1F48E}", theme.info)} Gemini ${colorize("\u26A0\uFE0F", theme.warning)}`;
@@ -2300,7 +2343,7 @@ var geminiUsageAllWidget = {
     const parts = data.buckets.map((bucket) => {
       const modelShort = bucket.modelId.replace("gemini-", "");
       if (bucket.usedPercent !== null) {
-        return `${colorize(modelShort, theme.secondary)}: ${formatUsage(bucket.usedPercent, bucket.resetAt, t)}`;
+        return `${colorize(modelShort, theme.secondary)}: ${formatUsage(bucket.usedPercent, bucket.resetAt, ctx)}`;
       }
       return `${colorize(modelShort, theme.secondary)}: ${colorize("--", theme.secondary)}`;
     });
@@ -2451,24 +2494,6 @@ function formatPercent(percent) {
   const color = getColorForPercent(percent);
   return colorize(`${Math.round(percent)}%`, color);
 }
-function formatResetTime(resetAtMs, t) {
-  const now = Date.now();
-  const diffMs = resetAtMs - now;
-  if (diffMs <= 0)
-    return `0${t.time.minutes}`;
-  const totalMinutes = Math.floor(diffMs / (1e3 * 60));
-  const totalHours = Math.floor(totalMinutes / 60);
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
-  const minutes = totalMinutes % 60;
-  if (days > 0) {
-    return `${days}${t.time.days}${hours}${t.time.hours}`;
-  }
-  if (hours > 0) {
-    return `${hours}${t.time.hours}${minutes}${t.time.minutes}`;
-  }
-  return `${minutes}${t.time.minutes}`;
-}
 var zaiUsageWidget = {
   id: "zaiUsage",
   name: "Z.ai Usage",
@@ -2501,23 +2526,23 @@ var zaiUsageWidget = {
   },
   render(data, ctx) {
     const { translations: t } = ctx;
+    const theme = getTheme();
     const parts = [];
     parts.push(`\u{1F7E0} ${data.model}`);
-    const theme = getTheme();
     if (data.isError) {
       parts.push(colorize("\u26A0\uFE0F", theme.warning));
     } else {
       if (data.tokensPercent !== null) {
         let tokenPart = `${t.labels["5h"]}: ${formatPercent(data.tokensPercent)}`;
-        if (data.tokensResetAt) {
-          tokenPart += ` (${formatResetTime(data.tokensResetAt, t)})`;
+        if (!ctx.compact && data.tokensResetAt) {
+          tokenPart += ` (${formatTimeRemaining(new Date(data.tokensResetAt), t)})`;
         }
         parts.push(tokenPart);
       }
       if (data.mcpPercent !== null) {
         let mcpPart = `${t.labels["1m"]}: ${formatPercent(data.mcpPercent)}`;
-        if (data.mcpResetAt) {
-          mcpPart += ` (${formatResetTime(data.mcpResetAt, t)})`;
+        if (!ctx.compact && data.mcpResetAt) {
+          mcpPart += ` (${formatTimeRemaining(new Date(data.mcpResetAt), t)})`;
         }
         parts.push(mcpPart);
       }
@@ -2589,41 +2614,48 @@ function getLines(config) {
   const disabledSet = new Set(disabled);
   return lines.map((line) => line.filter((id) => !disabledSet.has(id))).filter((line) => line.length > 0);
 }
-async function renderWidget(widgetId, ctx) {
+function getTerminalWidth() {
+  return process.stdout.columns || process.stderr.columns || parseInt(process.env.COLUMNS || "", 10) || 120;
+}
+async function collectWidgetData(widgetId, ctx) {
   const widget = getWidget(widgetId);
-  if (!widget) {
+  if (!widget)
     return null;
-  }
   try {
     const data = await widget.getData(ctx);
-    if (!data) {
+    if (!data)
       return null;
-    }
-    const output = widget.render(data, ctx);
-    return { id: widgetId, output };
+    return { widget, data };
   } catch (error) {
-    debugLog("widget", `Widget '${widgetId}' failed`, error);
+    debugLog("widget", `Widget '${widgetId}' getData failed`, error);
     return null;
   }
 }
-async function renderLine(widgetIds, ctx) {
-  const results = await Promise.all(
-    widgetIds.map((id) => renderWidget(id, ctx))
-  );
+function renderCollectedWidgets(collected, ctx) {
   const separator = getSeparator();
-  const outputs = results.filter((r) => r !== null && r.output.length > 0).map((r) => r.output);
-  return outputs.join(separator);
+  return collected.filter((w) => w !== null).map((w) => {
+    try {
+      return w.widget.render(w.data, ctx);
+    } catch {
+      return "";
+    }
+  }).filter((o) => o.length > 0).join(separator);
+}
+async function renderLine(widgetIds, ctx) {
+  const collected = await Promise.all(
+    widgetIds.map((id) => collectWidgetData(id, ctx))
+  );
+  const normalOutput = renderCollectedWidgets(collected, ctx);
+  const termWidth = getTerminalWidth();
+  if (getVisualWidth(normalOutput) > termWidth) {
+    return renderCollectedWidgets(collected, { ...ctx, compact: true });
+  }
+  return normalOutput;
 }
 async function renderAllLines(ctx) {
   const lines = getLines(ctx.config);
-  const renderedLines = [];
-  for (const lineWidgets of lines) {
-    const rendered = await renderLine(lineWidgets, ctx);
-    if (rendered.length > 0) {
-      renderedLines.push(rendered);
-    }
-  }
-  return renderedLines;
+  const rendered = await Promise.all(lines.map((lineWidgets) => renderLine(lineWidgets, ctx)));
+  return rendered.filter((line) => line.length > 0);
 }
 async function formatOutput(ctx) {
   const lines = await renderAllLines(ctx);

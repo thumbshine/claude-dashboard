@@ -4,26 +4,26 @@
  */
 
 import type { Widget } from './base.js';
-import type { WidgetContext, CodexUsageData, Translations } from '../types.js';
+import type { WidgetContext, CodexUsageData } from '../types.js';
 import { getColorForPercent, colorize, getTheme } from '../utils/colors.js';
 import { isCodexInstalled, fetchCodexUsage } from '../utils/codex-client.js';
 import { formatTimeRemaining } from '../utils/formatters.js';
 import { debugLog } from '../utils/debug.js';
 
 /**
- * Format rate limit with optional reset time
+ * Format rate limit with optional reset time (skipped in compact mode)
  */
 function formatRateLimit(
   label: string,
   percent: number,
   resetAt: number | null,
-  t: Translations
+  ctx: WidgetContext
 ): string {
   const color = getColorForPercent(percent);
   let result = `${label}: ${colorize(`${Math.round(percent)}%`, color)}`;
 
-  if (resetAt) {
-    const resetTime = formatTimeRemaining(new Date(resetAt * 1000), t);
+  if (!ctx.compact && resetAt) {
+    const resetTime = formatTimeRemaining(new Date(resetAt * 1000), ctx.translations);
     if (resetTime) {
       result += ` (${resetTime})`;
     }
@@ -70,21 +70,19 @@ export const codexUsageWidget: Widget<CodexUsageData> = {
 
   render(data: CodexUsageData, ctx: WidgetContext): string {
     const { translations: t } = ctx;
+    const theme = getTheme();
     const parts: string[] = [];
 
-    const theme = getTheme();
     parts.push(`${colorize('🔷', theme.info)} ${data.model}`);
 
-    // Show error indicator or usage percentages
     if (data.isError) {
       parts.push(colorize('⚠️', theme.warning));
     } else {
       if (data.primaryPercent !== null) {
-        parts.push(formatRateLimit(t.labels['5h'], data.primaryPercent, data.primaryResetAt, t));
+        parts.push(formatRateLimit(t.labels['5h'], data.primaryPercent, data.primaryResetAt, ctx));
       }
-
       if (data.secondaryPercent !== null) {
-        parts.push(formatRateLimit(t.labels['7d'], data.secondaryPercent, data.secondaryResetAt, t));
+        parts.push(formatRateLimit(t.labels['7d'], data.secondaryPercent, data.secondaryResetAt, ctx));
       }
     }
 

@@ -50,6 +50,8 @@ git clone https://github.com/uppinote20/claude-dashboard.git ~/.claude/plugins/c
 
 Multi-provider support: z.ai/ZHIPU, Codex, Gemini auto-detected when installed.
 
+**Adaptive width:** Widgets automatically switch to compact rendering when the terminal is narrow—no information is dropped, just abbreviated.
+
 ## Widgets
 
 | Category | Widget | Description |

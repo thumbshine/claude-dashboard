@@ -250,6 +250,20 @@ export function colorize(text: string, color: string): string {
 }
 
 /**
+ * Strip ANSI escape codes from a string
+ */
+export function stripAnsi(str: string): string {
+  return str.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+/**
+ * Get visual width of a string (excluding ANSI codes)
+ */
+export function getVisualWidth(str: string): number {
+  return stripAnsi(str).length;
+}
+
+/**
  * Get the pipe separator string using active theme
  */
 export function getSeparator(): string {

@@ -53,7 +53,12 @@ export const depletionTimeWidget: Widget<DepletionTimeData> = {
   },
 
   render(data: DepletionTimeData, ctx: WidgetContext): string {
-    const duration = formatDuration(data.minutesToLimit * 60 * 1000, ctx.translations.time);
-    return colorize(`⏳ ~${duration} to ${data.limitType}`, getTheme().warning);
+    const { translations: t } = ctx;
+    const duration = formatDuration(data.minutesToLimit * 60 * 1000, t.time);
+    // Compact: drop limit type label
+    if (ctx.compact) {
+      return colorize(`⏳ ~${duration}`, getTheme().warning);
+    }
+    return colorize(`⏳ ~${duration} ${t.widgets.toLimit} ${data.limitType}`, getTheme().warning);
   },
 };

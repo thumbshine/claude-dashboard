@@ -2,15 +2,15 @@
  * Widget registry and orchestrator
  */
 
-import type { Widget, WidgetRenderResult } from './base.js';
+import type { Widget } from './base.js';
 import type {
   WidgetId,
+  WidgetData,
   WidgetContext,
   Config,
-  DisplayMode,
 } from '../types.js';
 import { DISPLAY_PRESETS } from '../types.js';
-import { getSeparator } from '../utils/colors.js';
+import { getSeparator, getVisualWidth } from '../utils/colors.js';
 import { debugLog } from '../utils/debug.js';
 
 // Widget imports
@@ -94,66 +94,85 @@ export function getLines(config: Config): WidgetId[][] {
 }
 
 /**
- * Render a single widget
+ * Get terminal width, accounting for piped stdout
  */
-async function renderWidget(
+function getTerminalWidth(): number {
+  return process.stdout.columns
+    || process.stderr.columns
+    || parseInt(process.env.COLUMNS || '', 10)
+    || 120;
+}
+
+/**
+ * Collect widget data without rendering (Phase 1)
+ */
+async function collectWidgetData(
   widgetId: WidgetId,
   ctx: WidgetContext
-): Promise<WidgetRenderResult | null> {
+): Promise<{ widget: Widget; data: WidgetData } | null> {
   const widget = getWidget(widgetId);
-  if (!widget) {
-    return null;
-  }
+  if (!widget) return null;
 
   try {
     const data = await widget.getData(ctx);
-    if (!data) {
-      return null;
-    }
-
-    const output = widget.render(data, ctx);
-    return { id: widgetId, output };
+    if (!data) return null;
+    return { widget, data };
   } catch (error) {
-    // Graceful degradation - skip failed widgets, but log for debugging
-    debugLog('widget', `Widget '${widgetId}' failed`, error);
+    debugLog('widget', `Widget '${widgetId}' getData failed`, error);
     return null;
   }
 }
 
 /**
- * Render a line of widgets
+ * Render collected widget data into a line string (Phase 2)
+ */
+function renderCollectedWidgets(
+  collected: Array<{ widget: Widget; data: WidgetData } | null>,
+  ctx: WidgetContext
+): string {
+  const separator = getSeparator();
+  return collected
+    .filter((w): w is { widget: Widget; data: WidgetData } => w !== null)
+    .map((w) => {
+      try {
+        return w.widget.render(w.data, ctx);
+      } catch {
+        return '';
+      }
+    })
+    .filter((o) => o.length > 0)
+    .join(separator);
+}
+
+/**
+ * Render a line of widgets with adaptive width
+ * Normal render first; if too wide for terminal, re-render in compact mode
  */
 async function renderLine(
   widgetIds: WidgetId[],
   ctx: WidgetContext
 ): Promise<string> {
-  const results = await Promise.all(
-    widgetIds.map((id) => renderWidget(id, ctx))
+  const collected = await Promise.all(
+    widgetIds.map((id) => collectWidgetData(id, ctx))
   );
 
-  const separator = getSeparator();
-  const outputs = results
-    .filter((r): r is WidgetRenderResult => r !== null && r.output.length > 0)
-    .map((r) => r.output);
+  const normalOutput = renderCollectedWidgets(collected, ctx);
 
-  return outputs.join(separator);
+  const termWidth = getTerminalWidth();
+  if (getVisualWidth(normalOutput) > termWidth) {
+    return renderCollectedWidgets(collected, { ...ctx, compact: true });
+  }
+
+  return normalOutput;
 }
 
 /**
- * Render all lines based on configuration
+ * Render all lines based on configuration (parallel per line)
  */
 export async function renderAllLines(ctx: WidgetContext): Promise<string[]> {
   const lines = getLines(ctx.config);
-  const renderedLines: string[] = [];
-
-  for (const lineWidgets of lines) {
-    const rendered = await renderLine(lineWidgets, ctx);
-    if (rendered.length > 0) {
-      renderedLines.push(rendered);
-    }
-  }
-
-  return renderedLines;
+  const rendered = await Promise.all(lines.map((lineWidgets) => renderLine(lineWidgets, ctx)));
+  return rendered.filter((line) => line.length > 0);
 }
 
 /**
