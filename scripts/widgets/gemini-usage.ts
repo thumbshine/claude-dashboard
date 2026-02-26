@@ -5,25 +5,25 @@
  */
 
 import type { Widget } from './base.js';
-import type { WidgetContext, GeminiUsageData, GeminiUsageAllData, Translations } from '../types.js';
+import type { WidgetContext, GeminiUsageData, GeminiUsageAllData } from '../types.js';
 import { getColorForPercent, colorize, getTheme } from '../utils/colors.js';
 import { isGeminiInstalled, fetchGeminiUsage } from '../utils/gemini-client.js';
 import { formatTimeRemaining } from '../utils/formatters.js';
 import { debugLog } from '../utils/debug.js';
 
 /**
- * Format usage with optional reset time
+ * Format usage with optional reset time (skipped in compact mode)
  */
 function formatUsage(
   percent: number,
   resetAt: string | null,
-  t: Translations
+  ctx: WidgetContext
 ): string {
   const color = getColorForPercent(percent);
   let result = colorize(`${Math.round(percent)}%`, color);
 
-  if (resetAt) {
-    const resetTime = formatTimeRemaining(new Date(resetAt), t);
+  if (!ctx.compact && resetAt) {
+    const resetTime = formatTimeRemaining(new Date(resetAt), ctx.translations);
     if (resetTime) {
       result += ` (${resetTime})`;
     }
@@ -63,19 +63,15 @@ export const geminiUsageWidget: Widget<GeminiUsageData> = {
   },
 
   render(data: GeminiUsageData, ctx: WidgetContext): string {
-    const { translations: t } = ctx;
+    const theme = getTheme();
     const parts: string[] = [];
 
-    const theme = getTheme();
-
-    // Gemini icon (diamond) + model name
     parts.push(`${colorize('💎', theme.info)} ${data.model}`);
 
-    // Show error indicator or usage percentage
     if (data.isError) {
       parts.push(colorize('⚠️', theme.warning));
     } else if (data.usedPercent !== null) {
-      parts.push(formatUsage(data.usedPercent, data.resetAt, t));
+      parts.push(formatUsage(data.usedPercent, data.resetAt, ctx));
     }
 
     return parts.join(` ${colorize('│', theme.dim)} `);
@@ -115,8 +111,6 @@ export const geminiUsageAllWidget: Widget<GeminiUsageAllData> = {
   },
 
   render(data: GeminiUsageAllData, ctx: WidgetContext): string {
-    const { translations: t } = ctx;
-
     const theme = getTheme();
 
     if (data.isError) {
@@ -127,11 +121,10 @@ export const geminiUsageAllWidget: Widget<GeminiUsageAllData> = {
       return `${colorize('💎', theme.info)} Gemini ${colorize('--', theme.secondary)}`;
     }
 
-    // Render each bucket as "model: X% (reset)"
-    const parts = data.buckets.map(bucket => {
+    const parts = data.buckets.map((bucket) => {
       const modelShort = bucket.modelId.replace('gemini-', '');
       if (bucket.usedPercent !== null) {
-        return `${colorize(modelShort, theme.secondary)}: ${formatUsage(bucket.usedPercent, bucket.resetAt, t)}`;
+        return `${colorize(modelShort, theme.secondary)}: ${formatUsage(bucket.usedPercent, bucket.resetAt, ctx)}`;
       }
       return `${colorize(modelShort, theme.secondary)}: ${colorize('--', theme.secondary)}`;
     });

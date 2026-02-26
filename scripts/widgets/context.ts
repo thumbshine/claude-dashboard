@@ -6,7 +6,10 @@ import type { Widget } from './base.js';
 import type { WidgetContext, ContextData } from '../types.js';
 import { getColorForPercent, colorize, getSeparator } from '../utils/colors.js';
 import { formatTokens, calculatePercent } from '../utils/formatters.js';
-import { renderProgressBar } from '../utils/progress-bar.js';
+import { renderProgressBar, DEFAULT_PROGRESS_BAR_CONFIG } from '../utils/progress-bar.js';
+
+/** Progress bar width used when terminal is narrow */
+const COMPACT_PROGRESS_BAR_WIDTH = 6;
 
 export const contextWidget: Widget<ContextData> = {
   id: 'context',
@@ -48,17 +51,22 @@ export const contextWidget: Widget<ContextData> = {
   render(data: ContextData, ctx: WidgetContext): string {
     const parts: string[] = [];
 
-    // Progress bar
-    parts.push(renderProgressBar(data.percentage));
+    // Progress bar (narrower in compact mode)
+    const barConfig = ctx.compact
+      ? { ...DEFAULT_PROGRESS_BAR_CONFIG, width: COMPACT_PROGRESS_BAR_WIDTH }
+      : undefined;
+    parts.push(renderProgressBar(data.percentage, barConfig));
 
     // Percentage with color
     const percentColor = getColorForPercent(data.percentage);
     parts.push(colorize(`${data.percentage}%`, percentColor));
 
-    // Token count (input tokens / context size)
-    parts.push(
-      `${formatTokens(data.inputTokens)}/${formatTokens(data.contextSize)}`
-    );
+    // Token count - skip in compact mode
+    if (!ctx.compact) {
+      parts.push(
+        `${formatTokens(data.inputTokens)}/${formatTokens(data.contextSize)}`
+      );
+    }
 
     return parts.join(getSeparator());
   },

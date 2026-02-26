@@ -34,23 +34,26 @@ export const agentStatusWidget: Widget<AgentStatusData> = {
 
   render(data: AgentStatusData, ctx: WidgetContext): string {
     const { translations: t } = ctx;
-
     const theme = getTheme();
 
+    if (ctx.compact) {
+      if (data.active.length === 0) {
+        return colorize(`🤖 ${data.completed}✓`, theme.secondary);
+      }
+      return `${colorize('🤖', theme.info)} ${data.active.length}▶${data.completed}✓`;
+    }
+
     if (data.active.length === 0) {
-      // No active agents, show completed count
       return colorize(
         `${t.widgets.agent}: ${data.completed} ${t.widgets.done}`,
         theme.secondary
       );
     }
 
-    // Show active agent(s)
     const activeAgent = data.active[0];
     const agentText = activeAgent.description
       ? `${activeAgent.name}: ${activeAgent.description.slice(0, 20)}${activeAgent.description.length > 20 ? '...' : ''}`
       : activeAgent.name;
-
     const more = data.active.length > 1 ? ` +${data.active.length - 1}` : '';
 
     return `${colorize('🤖', theme.info)} ${t.widgets.agent}: ${agentText}${more}`;

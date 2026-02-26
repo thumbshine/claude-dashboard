@@ -206,6 +206,8 @@ export interface WidgetContext {
   translations: Translations;
   /** Cached API rate limits */
   rateLimits?: UsageLimits | null;
+  /** Compact rendering mode (auto-set when terminal is narrow) */
+  compact?: boolean;
 }
 
 /**

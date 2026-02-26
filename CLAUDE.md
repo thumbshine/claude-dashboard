@@ -142,6 +142,22 @@ Color themes via `getTheme()` semantic roles. Set `"theme"` in config.
 | `dracula` | Dracula palette |
 | `gruvbox` | Gruvbox palette |
 
+### Adaptive Terminal Width
+
+When a rendered line exceeds the terminal width, it is automatically re-rendered in **compact mode** (`ctx.compact = true`). This is per-line: narrow lines stay normal, wide lines switch to compact.
+
+Terminal width detection: `stdout.columns → stderr.columns → $COLUMNS → 120`.
+
+Compact rendering per widget:
+- `context`: shorter progress bar (6 vs 10), drop token count
+- `rateLimit*`, `codexUsage`, `geminiUsage`, `zaiUsage`: drop reset time
+- `projectInfo`: truncate dir name to 10 chars
+- `configCounts`: short labels (`C:2 R:3 M:4 H:1`)
+- `toolActivity`, `agentStatus`: abbreviated (`⚙️ 2▶5✓`)
+- `todoProgress`: drop task name
+- `burnRate`: `/m` instead of `/min`
+- `depletionTime`: drop limit type label
+
 ### Widget Toggle
 
 `"disabledWidgets"` in config filters widgets from any display mode (preset or custom).

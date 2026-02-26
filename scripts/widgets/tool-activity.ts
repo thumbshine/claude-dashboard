@@ -34,18 +34,22 @@ export const toolActivityWidget: Widget<ToolActivityData> = {
 
   render(data: ToolActivityData, ctx: WidgetContext): string {
     const { translations: t } = ctx;
-
     const theme = getTheme();
 
+    if (ctx.compact) {
+      if (data.running.length === 0) {
+        return colorize(`⚙️ ${data.completed}✓`, theme.secondary);
+      }
+      return `${colorize('⚙️', theme.warning)} ${data.running.length}▶${data.completed}✓`;
+    }
+
     if (data.running.length === 0) {
-      // No running tools, just show completed count
       return colorize(
         `${t.widgets.tools}: ${data.completed} ${t.widgets.done}`,
         theme.secondary
       );
     }
 
-    // Show running tools
     const runningNames = data.running
       .slice(0, 2)
       .map((r) => r.name)

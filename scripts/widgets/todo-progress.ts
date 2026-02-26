@@ -42,8 +42,8 @@ export const todoProgressWidget: Widget<TodoProgressData> = {
     const percent = calculatePercent(data.completed, data.total);
     const color = getColorForPercent(100 - percent); // Invert: lower completion = more red
 
-    // Format: ✓ 3/5 or ✓ Task name [3/5]
-    if (data.current) {
+    // Format: ✓ 3/5 or ✓ Task name [3/5] (compact: always ✓ 3/5)
+    if (data.current && !ctx.compact) {
       const taskName =
         data.current.content.length > 15
           ? data.current.content.slice(0, 15) + '...'
