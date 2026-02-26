@@ -257,10 +257,38 @@ export function stripAnsi(str: string): string {
 }
 
 /**
+ * Check if a codepoint occupies 2 terminal columns
+ */
+function isWideChar(cp: number): boolean {
+  return (
+    (cp >= 0x1100 && cp <= 0x115F) ||   // Hangul Jamo
+    (cp >= 0x2600 && cp <= 0x27BF) ||   // Misc symbols (⚙ etc.)
+    (cp >= 0x2E80 && cp <= 0x303E) ||   // CJK Radicals
+    (cp >= 0x3040 && cp <= 0x33BF) ||   // Japanese
+    (cp >= 0x3400 && cp <= 0x4DBF) ||   // CJK Ext A
+    (cp >= 0x4E00 && cp <= 0x9FFF) ||   // CJK Unified
+    (cp >= 0xAC00 && cp <= 0xD7AF) ||   // Hangul Syllables
+    (cp >= 0xF900 && cp <= 0xFAFF) ||   // CJK Compatibility
+    (cp >= 0xFE30 && cp <= 0xFE6F) ||   // CJK Compatibility Forms
+    (cp >= 0xFF01 && cp <= 0xFF60) ||   // Fullwidth Forms
+    cp > 0x1F000                         // Emoji & symbols
+  );
+}
+
+/**
  * Get visual width of a string (excluding ANSI codes)
+ * Accounts for CJK, Hangul, and emoji characters that occupy 2 terminal columns
  */
 export function getVisualWidth(str: string): number {
-  return stripAnsi(str).length;
+  const stripped = stripAnsi(str);
+  let width = 0;
+  for (const ch of stripped) {
+    const cp = ch.codePointAt(0) ?? 0;
+    // Variation selectors (FE00-FE0F) have zero width
+    if (cp >= 0xFE00 && cp <= 0xFE0F) continue;
+    width += isWideChar(cp) ? 2 : 1;
+  }
+  return width;
 }
 
 /**

@@ -136,7 +136,8 @@ function renderCollectedWidgets(
     .map((w) => {
       try {
         return w.widget.render(w.data, ctx);
-      } catch {
+      } catch (error) {
+        debugLog('widget', `Widget '${w.widget.id}' render failed`, error);
         return '';
       }
     })
@@ -159,8 +160,15 @@ async function renderLine(
   const normalOutput = renderCollectedWidgets(collected, ctx);
 
   const termWidth = getTerminalWidth();
-  if (getVisualWidth(normalOutput) > termWidth) {
-    return renderCollectedWidgets(collected, { ...ctx, compact: true });
+  const normalWidth = getVisualWidth(normalOutput);
+  if (normalWidth > termWidth) {
+    debugLog('render', `Line width ${normalWidth} > terminal ${termWidth}, switching to compact`);
+    const compactOutput = renderCollectedWidgets(collected, { ...ctx, compact: true });
+    const compactWidth = getVisualWidth(compactOutput);
+    if (compactWidth > termWidth) {
+      debugLog('render', `Compact width ${compactWidth} still > terminal ${termWidth}`);
+    }
+    return compactOutput;
   }
 
   return normalOutput;

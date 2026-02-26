@@ -249,8 +249,29 @@ function colorize(text, color) {
 function stripAnsi(str) {
   return str.replace(/\x1b\[[0-9;]*m/g, "");
 }
+function isWideChar(cp) {
+  return cp >= 4352 && cp <= 4447 || // Hangul Jamo
+  cp >= 9728 && cp <= 10175 || // Misc symbols (⚙ etc.)
+  cp >= 11904 && cp <= 12350 || // CJK Radicals
+  cp >= 12352 && cp <= 13247 || // Japanese
+  cp >= 13312 && cp <= 19903 || // CJK Ext A
+  cp >= 19968 && cp <= 40959 || // CJK Unified
+  cp >= 44032 && cp <= 55215 || // Hangul Syllables
+  cp >= 63744 && cp <= 64255 || // CJK Compatibility
+  cp >= 65072 && cp <= 65135 || // CJK Compatibility Forms
+  cp >= 65281 && cp <= 65376 || // Fullwidth Forms
+  cp > 126976;
+}
 function getVisualWidth(str) {
-  return stripAnsi(str).length;
+  const stripped = stripAnsi(str);
+  let width = 0;
+  for (const ch of stripped) {
+    const cp = ch.codePointAt(0) ?? 0;
+    if (cp >= 65024 && cp <= 65039)
+      continue;
+    width += isWideChar(cp) ? 2 : 1;
+  }
+  return width;
 }
 function getSeparator() {
   return ` ${getTheme().dim}\u2502${RESET} `;
@@ -2636,7 +2657,8 @@ function renderCollectedWidgets(collected, ctx) {
   return collected.filter((w) => w !== null).map((w) => {
     try {
       return w.widget.render(w.data, ctx);
-    } catch {
+    } catch (error) {
+      debugLog("widget", `Widget '${w.widget.id}' render failed`, error);
       return "";
     }
   }).filter((o) => o.length > 0).join(separator);
@@ -2647,8 +2669,15 @@ async function renderLine(widgetIds, ctx) {
   );
   const normalOutput = renderCollectedWidgets(collected, ctx);
   const termWidth = getTerminalWidth();
-  if (getVisualWidth(normalOutput) > termWidth) {
-    return renderCollectedWidgets(collected, { ...ctx, compact: true });
+  const normalWidth = getVisualWidth(normalOutput);
+  if (normalWidth > termWidth) {
+    debugLog("render", `Line width ${normalWidth} > terminal ${termWidth}, switching to compact`);
+    const compactOutput = renderCollectedWidgets(collected, { ...ctx, compact: true });
+    const compactWidth = getVisualWidth(compactOutput);
+    if (compactWidth > termWidth) {
+      debugLog("render", `Compact width ${compactWidth} still > terminal ${termWidth}`);
+    }
+    return compactOutput;
   }
   return normalOutput;
 }
