@@ -135,35 +135,39 @@ const MIN_EFFECTIVE_WIDTH = 40;
  */
 function getEffectiveWidth(config: Config): number {
   const termWidth = getTerminalWidth();
-  const outerPadding = 4; // paddingX={2} -> 2 per side
-  const rightReserve = config.rightReserve ?? 25;
+  const outerPadding = 4; // Claude Code's paddingX={2} means 2 chars per side = 4 total
+  const rightReserve = config.rightReserve ?? 25; // accounts for Claude Code's right-side notification area
   return Math.max(MIN_EFFECTIVE_WIDTH, termWidth - outerPadding - rightReserve);
 }
 
 /**
  * Render a single widget, choosing compact mode if it exceeds the compact threshold.
  * Falls back to truncation when even compact mode overflows the effective width.
+ * Returns both the rendered string and its visual width to avoid redundant recalculation.
  */
 function renderWidget(
   widget: Widget,
   data: WidgetData,
   ctx: WidgetContext,
   effectiveWidth: number,
-): string {
+): { rendered: string; width: number } {
   try {
     const normal = widget.render(data, ctx);
-    if (getVisualWidth(normal) <= effectiveWidth * COMPACT_THRESHOLD) {
-      return normal;
+    const normalWidth = getVisualWidth(normal);
+    if (normalWidth <= effectiveWidth * COMPACT_THRESHOLD) {
+      return { rendered: normal, width: normalWidth };
     }
 
     const compact = widget.render(data, { ...ctx, compact: true });
-    if (getVisualWidth(compact) > effectiveWidth) {
-      return truncateToWidth(compact, effectiveWidth);
+    const compactWidth = getVisualWidth(compact);
+    if (compactWidth > effectiveWidth) {
+      const truncated = truncateToWidth(compact, effectiveWidth);
+      return { rendered: truncated, width: getVisualWidth(truncated) };
     }
-    return compact;
+    return { rendered: compact, width: compactWidth };
   } catch (error) {
     debugLog('widget', `Widget '${widget.id}' render failed`, error);
-    return '';
+    return { rendered: '', width: 0 };
   }
 }
 
@@ -195,10 +199,9 @@ async function renderLineWithWrap(
   let currentWidth = 0;
 
   for (const item of valid) {
-    const rendered = renderWidget(item.widget, item.data, ctx, effectiveWidth);
+    const { rendered, width: widgetWidth } = renderWidget(item.widget, item.data, ctx, effectiveWidth);
     if (rendered === '') continue;
 
-    const widgetWidth = getVisualWidth(rendered);
     const needsSeparator = currentRendered.length > 0;
     const addedWidth = needsSeparator ? sepWidth + widgetWidth : widgetWidth;
 
@@ -227,6 +230,8 @@ export async function renderAllLines(ctx: WidgetContext): Promise<string[]> {
   const configLines = getLines(ctx.config);
   const effectiveWidth = getEffectiveWidth(ctx.config);
 
+  // Sequential iteration: each config line may wrap into multiple output lines,
+  // so ordering must be preserved (parallel would interleave wrapped lines).
   const allLines: string[] = [];
   for (const lineWidgets of configLines) {
     const wrapped = await renderLineWithWrap(lineWidgets, ctx, effectiveWidth);

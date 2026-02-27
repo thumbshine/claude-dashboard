@@ -2698,17 +2698,20 @@ function getEffectiveWidth(config) {
 function renderWidget(widget, data, ctx, effectiveWidth) {
   try {
     const normal = widget.render(data, ctx);
-    if (getVisualWidth(normal) <= effectiveWidth * COMPACT_THRESHOLD) {
-      return normal;
+    const normalWidth = getVisualWidth(normal);
+    if (normalWidth <= effectiveWidth * COMPACT_THRESHOLD) {
+      return { rendered: normal, width: normalWidth };
     }
     const compact = widget.render(data, { ...ctx, compact: true });
-    if (getVisualWidth(compact) > effectiveWidth) {
-      return truncateToWidth(compact, effectiveWidth);
+    const compactWidth = getVisualWidth(compact);
+    if (compactWidth > effectiveWidth) {
+      const truncated = truncateToWidth(compact, effectiveWidth);
+      return { rendered: truncated, width: getVisualWidth(truncated) };
     }
-    return compact;
+    return { rendered: compact, width: compactWidth };
   } catch (error) {
     debugLog("widget", `Widget '${widget.id}' render failed`, error);
-    return "";
+    return { rendered: "", width: 0 };
   }
 }
 async function renderLineWithWrap(widgetIds, ctx, effectiveWidth) {
@@ -2726,10 +2729,9 @@ async function renderLineWithWrap(widgetIds, ctx, effectiveWidth) {
   let currentRendered = [];
   let currentWidth = 0;
   for (const item of valid) {
-    const rendered = renderWidget(item.widget, item.data, ctx, effectiveWidth);
+    const { rendered, width: widgetWidth } = renderWidget(item.widget, item.data, ctx, effectiveWidth);
     if (rendered === "")
       continue;
-    const widgetWidth = getVisualWidth(rendered);
     const needsSeparator = currentRendered.length > 0;
     const addedWidth = needsSeparator ? sepWidth + widgetWidth : widgetWidth;
     if (needsSeparator && currentWidth + addedWidth > effectiveWidth) {
