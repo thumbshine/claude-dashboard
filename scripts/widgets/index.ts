@@ -31,6 +31,10 @@ import { codexUsageWidget } from './codex-usage.js';
 import { geminiUsageWidget, geminiUsageAllWidget } from './gemini-usage.js';
 import { zaiUsageWidget } from './zai-usage.js';
 import { sessionIdWidget, sessionIdFullWidget } from './session-id.js';
+import { tokenBreakdownWidget } from './token-breakdown.js';
+import { performanceWidget } from './performance.js';
+import { forecastWidget } from './forecast.js';
+import { budgetWidget } from './budget.js';
 
 /**
  * Widget registry - maps widget IDs to widget implementations
@@ -57,6 +61,10 @@ const widgetRegistry = new Map<WidgetId, Widget>([
   ['zaiUsage', zaiUsageWidget],
   ['sessionId', sessionIdWidget],
   ['sessionIdFull', sessionIdFullWidget],
+  ['tokenBreakdown', tokenBreakdownWidget],
+  ['performance', performanceWidget],
+  ['forecast', forecastWidget],
+  ['budget', budgetWidget],
 ] as [WidgetId, Widget][]);
 
 /**

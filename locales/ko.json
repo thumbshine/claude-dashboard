@@ -33,7 +33,11 @@
     "hooks": "훅",
     "burnRate": "소모율",
     "cache": "캐시",
-    "toLimit": "후"
+    "toLimit": "후",
+    "forecast": "예측",
+    "budget": "예산",
+    "performance": "성능",
+    "tokenBreakdown": "토큰"
   },
   "checkUsage": {
     "title": "CLI 사용량 대시보드",
