@@ -189,35 +189,6 @@ Widget separator style via `"separator"` in config.
 | `arrow` | `›` | `Model › Context › Cost` |
 | `powerline` | `` | `Model  Context  Cost` |
 
-### Adaptive Terminal Width
-
-When widgets on a line exceed the **effective width**, they automatically **wrap to the next line** instead of being removed. Individual widgets switch to compact mode when they exceed 50% of the effective width. As a final safety net, `truncateToWidth()` truncates any widget that still overflows even in compact mode.
-
-```
-effectiveWidth = terminalWidth - outerPadding(4) - rightReserve(default 25)
-minimum: 40
-```
-
-- `outerPadding = 4`: Claude Code's `paddingX={2}` → 2 chars per side
-- `rightReserve = 25`: reserved for Claude Code's right-side notification area
-- Set `"rightReserve"` in config to adjust (e.g., `40` for wider notifications)
-
-Terminal width detection: `stdout.columns → stderr.columns → $COLUMNS → 120`.
-
-Compact rendering per widget:
-- `context`: shorter progress bar (6 vs 10), drop token count
-- `rateLimit*`, `codexUsage`, `geminiUsage`, `zaiUsage`: drop reset time
-- `projectInfo`: truncate dir name to 10 chars
-- `configCounts`: short labels (`C:2 R:3 M:4 H:1`)
-- `toolActivity`, `agentStatus`: abbreviated (`⚙️ 2▶5✓`)
-- `todoProgress`: drop task name
-- `burnRate`: `/m` instead of `/min`
-- `depletionTime`: drop limit type label
-- `tokenBreakdown`: show only input + output (`I:30K O:8K`)
-- `performance`: drop `%` suffix
-- `forecast`: drop current cost, show only hourly estimate
-- `budget`: drop percentage
-
 ### Widget Toggle
 
 `"disabledWidgets"` in config filters widgets from any display mode (preset or custom).
