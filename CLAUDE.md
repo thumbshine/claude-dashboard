@@ -187,7 +187,6 @@ Widget separator style via `"separator"` in config.
 | `space` | ` ` | `Model  Context  Cost` |
 | `dot` | `·` | `Model · Context · Cost` |
 | `arrow` | `›` | `Model › Context › Cost` |
-| `powerline` | `` | `Model  Context  Cost` |
 
 ### Widget Toggle
 

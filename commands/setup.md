@@ -18,7 +18,7 @@ Configure the claude-dashboard status line plugin with widget system support.
 - `$1`: Display mode
   - `compact` (default): 1 line (model, context, cost, rateLimit5h, rateLimit7d, rateLimit7dSonnet, zaiUsage)
   - `normal`: 2 lines (+ projectInfo, sessionId, sessionDuration, burnRate, todoProgress)
-  - `detailed`: 4 lines (+ depletionTime, configCounts, toolActivity, agentStatus, cacheHit, performance, tokenBreakdown, forecast, budget, codexUsage, geminiUsage)
+  - `detailed`: 5 lines (+ depletionTime, configCounts, toolActivity, agentStatus, cacheHit, performance, tokenBreakdown, forecast, budget, codexUsage, geminiUsage)
   - `custom`: Custom widget configuration (requires `$4`)
 
 - `$2`: Language preference
@@ -127,7 +127,7 @@ Create `~/.claude/claude-dashboard.local.json`:
   "plan": "$3 or max",
   "displayMode": "$1 or normal",
   "theme": "selected theme or default",
-  "separator": "pipe (default) | space | dot | arrow | powerline",
+  "separator": "pipe (default) | space | dot | arrow",
   "disabledWidgets": ["selected widgets to hide, omit if empty"],
   "cache": {
     "ttlSeconds": 60

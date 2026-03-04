@@ -42,7 +42,7 @@ git clone https://github.com/uppinote20/claude-dashboard.git ~/.claude/plugins/c
 
 > Adds project info, session ID, session duration, burn rate, todo progress
 
-**Detailed (4 lines):**
+**Detailed (5 lines):**
 
 ![Detailed](images/detailed.png)
 
@@ -50,7 +50,6 @@ git clone https://github.com/uppinote20/claude-dashboard.git ~/.claude/plugins/c
 
 Multi-provider support: z.ai/ZHIPU, Codex, Gemini auto-detected when installed.
 
-**Adaptive width:** Widgets automatically wrap to the next line when the terminal is narrow—no widget is removed, just reflowed. Wide widgets switch to compact rendering individually. Set `"rightReserve"` in config to adjust reserved space for Claude Code's notification area.
 
 ## Widgets
 
@@ -93,7 +92,7 @@ i18n: English and Korean supported (auto-detect or set via setup).
 # Preset modes
 /claude-dashboard:setup compact             # 1 line (default)
 /claude-dashboard:setup normal en pro       # 2 lines, English, Pro plan
-/claude-dashboard:setup detailed ko max     # 4 lines, Korean, Max plan
+/claude-dashboard:setup detailed ko max     # 5 lines, Korean, Max plan
 
 # Custom mode: control widget order and line composition
 # Format: "widget1,widget2,...|widget3,widget4,..." (| separates lines)
@@ -118,7 +117,7 @@ i18n: English and Korean supported (auto-detect or set via setup).
 |------|-------|---------|
 | `compact` | 1 | model, context, cost, rateLimit5h/7d/7dSonnet, zaiUsage |
 | `normal` | 2 | + projectInfo, sessionId, sessionDuration, burnRate, todoProgress |
-| `detailed` | 4 | + depletionTime, configCounts, toolActivity, agentStatus, cacheHit, performance, tokenBreakdown, forecast, budget, codexUsage, geminiUsage |
+| `detailed` | 5 | + depletionTime, configCounts, toolActivity, agentStatus, cacheHit, performance, tokenBreakdown, forecast, budget, codexUsage, geminiUsage |
 
 **Configuration file** (`~/.claude/claude-dashboard.local.json`):
 
@@ -150,7 +149,7 @@ Or use preset shorthand for quick configuration:
 
 **Themes:** `default` (pastel) / `minimal` (monochrome) / `catppuccin` / `dracula` / `gruvbox` / `nord` / `tokyoNight` / `solarized`
 
-**Separators:** `pipe` (│, default) / `space` / `dot` (·) / `arrow` (›) / `powerline` ()
+**Separators:** `pipe` (│, default) / `space` / `dot` (·) / `arrow` (›)
 
 **Preset Shortcuts:** Quick layout with single characters — `"preset": "MC$R|BDO"` (M=model, C=context, $=cost, R=rateLimit5h, etc.)
 
