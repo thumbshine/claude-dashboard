@@ -70,6 +70,8 @@ var VERSION = "1.16.0";
 
 // scripts/utils/api-client.ts
 var API_TIMEOUT_MS = 5e3;
+var MAX_RETRY_AFTER_MS = 3e3;
+var STALE_CACHE_TTL_MULTIPLIER = 10;
 var CACHE_DIR = path.join(os.homedir(), ".cache", "claude-dashboard");
 var CACHE_MAX_AGE_SECONDS = 3600;
 var CLEANUP_INTERVAL_MS = 36e5;
@@ -125,16 +127,25 @@ async function fetchUsageLimits(ttlSeconds = 60) {
   const requestPromise = fetchFromApi(token, tokenHash);
   pendingRequests.set(tokenHash, requestPromise);
   try {
-    return await requestPromise;
+    const result = await requestPromise;
+    if (result)
+      return result;
+    const staleMemory = usageCacheMap.get(tokenHash);
+    if (staleMemory)
+      return staleMemory.data;
+    const staleFile = await loadFileCache(tokenHash, ttlSeconds * STALE_CACHE_TTL_MULTIPLIER);
+    if (staleFile)
+      return staleFile;
+    return null;
   } finally {
     pendingRequests.delete(tokenHash);
   }
 }
-async function fetchFromApi(token, tokenHash) {
+async function makeRequest(token) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-    const response = await fetch("https://api.anthropic.com/api/oauth/usage", {
+    return await fetch("https://api.anthropic.com/api/oauth/usage", {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -145,7 +156,20 @@ async function fetchFromApi(token, tokenHash) {
       },
       signal: controller.signal
     });
+  } finally {
     clearTimeout(timeout);
+  }
+}
+async function fetchFromApi(token, tokenHash) {
+  try {
+    let response = await makeRequest(token);
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get("retry-after") ?? "", 10);
+      if (!isNaN(retryAfter) && retryAfter * 1e3 <= MAX_RETRY_AFTER_MS) {
+        await new Promise((r) => setTimeout(r, retryAfter * 1e3));
+        response = await makeRequest(token);
+      }
+    }
     if (!response.ok) {
       return null;
     }

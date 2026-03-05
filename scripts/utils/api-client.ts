@@ -7,6 +7,8 @@ import { hashToken } from './hash.js';
 import { VERSION } from '../version.js';
 
 const API_TIMEOUT_MS = 5000;
+const MAX_RETRY_AFTER_MS = 3000; // Only retry if retry-after <= 3 seconds
+const STALE_CACHE_TTL_MULTIPLIER = 10; // Stale cache TTL = normal TTL * 10
 const CACHE_DIR = path.join(os.homedir(), '.cache', 'claude-dashboard');
 const CACHE_MAX_AGE_SECONDS = 3600; // 1 hour - cleanup files older than this
 const CLEANUP_INTERVAL_MS = 3600000; // 1 hour - minimum interval between cleanups
@@ -109,21 +111,31 @@ export async function fetchUsageLimits(ttlSeconds: number = 60): Promise<UsageLi
   pendingRequests.set(tokenHash, requestPromise);
 
   try {
-    return await requestPromise;
+    const result = await requestPromise;
+    if (result) return result;
+
+    // API failed - fall back to stale cache
+    const staleMemory = usageCacheMap.get(tokenHash);
+    if (staleMemory) return staleMemory.data;
+
+    const staleFile = await loadFileCache(tokenHash, ttlSeconds * STALE_CACHE_TTL_MULTIPLIER);
+    if (staleFile) return staleFile;
+
+    return null;
   } finally {
     pendingRequests.delete(tokenHash);
   }
 }
 
 /**
- * Internal function to fetch from API
+ * Make a single API request
  */
-async function fetchFromApi(token: string, tokenHash: string): Promise<UsageLimits | null> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+async function makeRequest(token: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-    const response = await fetch('https://api.anthropic.com/api/oauth/usage', {
+  try {
+    return await fetch('https://api.anthropic.com/api/oauth/usage', {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -134,8 +146,26 @@ async function fetchFromApi(token: string, tokenHash: string): Promise<UsageLimi
       },
       signal: controller.signal,
     });
-
+  } finally {
     clearTimeout(timeout);
+  }
+}
+
+/**
+ * Internal function to fetch from API with single retry on 429
+ */
+async function fetchFromApi(token: string, tokenHash: string): Promise<UsageLimits | null> {
+  try {
+    let response = await makeRequest(token);
+
+    // Retry once on 429 if retry-after is short enough
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get('retry-after') ?? '', 10);
+      if (!isNaN(retryAfter) && retryAfter * 1000 <= MAX_RETRY_AFTER_MS) {
+        await new Promise((r) => setTimeout(r, retryAfter * 1000));
+        response = await makeRequest(token);
+      }
+    }
 
     if (!response.ok) {
       return null;

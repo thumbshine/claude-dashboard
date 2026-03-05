@@ -182,7 +182,7 @@ export const DEFAULT_CONFIG: Config = {
   plan: 'max',
   displayMode: 'compact',
   cache: {
-    ttlSeconds: 60,
+    ttlSeconds: 300,
   },
 };
 
