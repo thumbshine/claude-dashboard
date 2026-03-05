@@ -12,7 +12,7 @@ import { formatTimeRemaining } from '../utils/formatters.js';
 import { debugLog } from '../utils/debug.js';
 
 /**
- * Format usage with optional reset time (skipped in compact mode)
+ * Format usage with optional reset time
  */
 function formatUsage(
   percent: number,
@@ -22,7 +22,7 @@ function formatUsage(
   const color = getColorForPercent(percent);
   let result = colorize(`${Math.round(percent)}%`, color);
 
-  if (!ctx.compact && resetAt) {
+  if (resetAt) {
     const resetTime = formatTimeRemaining(new Date(resetAt), ctx.translations);
     if (resetTime) {
       result += ` (${resetTime})`;

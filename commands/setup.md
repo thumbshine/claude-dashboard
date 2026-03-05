@@ -18,7 +18,7 @@ Configure the claude-dashboard status line plugin with widget system support.
 - `$1`: Display mode
   - `compact` (default): 1 line (model, context, cost, rateLimit5h, rateLimit7d, rateLimit7dSonnet, zaiUsage)
   - `normal`: 2 lines (+ projectInfo, sessionId, sessionDuration, burnRate, todoProgress)
-  - `detailed`: 4 lines (+ depletionTime, configCounts, toolActivity, agentStatus, cacheHit, codexUsage, geminiUsage)
+  - `detailed`: 5 lines (+ depletionTime, configCounts, toolActivity, agentStatus, cacheHit, performance, tokenBreakdown, forecast, budget, codexUsage, geminiUsage)
   - `custom`: Custom widget configuration (requires `$4`)
 
 - `$2`: Language preference
@@ -60,6 +60,10 @@ Configure the claude-dashboard status line plugin with widget system support.
 | `geminiUsage` | Google Gemini CLI usage - current model (auto-hide if not installed) |
 | `geminiUsageAll` | Google Gemini CLI usage - all models (auto-hide if not installed) |
 | `zaiUsage` | z.ai/ZHIPU usage (auto-hide if not using z.ai) |
+| `tokenBreakdown` | Input/output/cache write/read token breakdown |
+| `performance` | Composite efficiency badge (cache hit + output ratio) |
+| `forecast` | Estimated hourly cost based on session rate |
+| `budget` | Daily spending vs configured budget limit (requires `dailyBudget` in config) |
 
 ## Tasks
 
@@ -84,8 +88,8 @@ Use AskUserQuestion to ask the user. Batch independent questions into a single A
      ```
      🤖 Opus(H) │ ██░░ 80% │ $1.25 │ 5h: 42% │ 7d: 69%
      📁 project (main ↑3) │ 🔑 abc123 │ ⏱ 45m │ 🔥 5K/m │ ⏳ 2h │ ✓ 3/5
-     CLAUDE.md: 2 │ ⚙️ 12 done │ 🤖 Agent: 1 │ 📦 85%
-     🔷 codex │ 5h: 15% │ 💎 gemini │ 0%
+     CLAUDE.md: 2 │ ⚙️ 12 done │ 🤖 Agent: 1 │ 📦 85% │ 🟢 72%
+     📊 In 30K · Out 8K │ 📈 ~$8/h │ 💵 $5/$15 │ 🔷 codex │ 💎 gemini
      ```
    - custom, markdown:
      ```
@@ -94,8 +98,8 @@ Use AskUserQuestion to ask the user. Batch independent questions into a single A
      ```
 2. Language: auto (recommended), en, ko
 3. Plan: max (recommended), pro
-4. Theme: default (recommended), minimal, catppuccin, "dracula / gruvbox"
-   - If "dracula / gruvbox" selected: ask in next turn which one (dracula or gruvbox)
+4. Theme: default (recommended), minimal, catppuccin, "dracula / gruvbox / nord / tokyoNight / solarized"
+   - If multi-option selected: ask in next turn which one
 
 **Turn 2** — If display mode = "custom", ask for each line's widgets:
 - Show available widgets table for reference
@@ -123,12 +127,28 @@ Create `~/.claude/claude-dashboard.local.json`:
   "plan": "$3 or max",
   "displayMode": "$1 or normal",
   "theme": "selected theme or default",
+  "separator": "pipe (default) | space | dot | arrow",
   "disabledWidgets": ["selected widgets to hide, omit if empty"],
   "cache": {
     "ttlSeconds": 60
   }
 }
 ```
+
+**For preset shorthand (quick layout):**
+```json
+{
+  "language": "auto",
+  "plan": "max",
+  "preset": "MC$R|BDO",
+  "theme": "default",
+  "cache": {
+    "ttlSeconds": 60
+  }
+}
+```
+
+Preset characters: `M`=model, `C`=context, `$`=cost, `R`=rateLimit5h, `7`=rateLimit7d, `S`=7dSonnet, `P`=projectInfo, `I`=sessionId, `D`=sessionDuration, `T`=toolActivity, `A`=agentStatus, `O`=todoProgress, `B`=burnRate, `E`=depletionTime, `H`=cacheHit, `X`=codexUsage, `G`=geminiUsage, `Z`=zaiUsage, `K`=configCounts, `N`=tokenBreakdown, `F`=performance, `W`=forecast, `U`=budget. Use `|` to separate lines.
 
 **For custom mode:**
 ```json
@@ -141,6 +161,7 @@ Create `~/.claude/claude-dashboard.local.json`:
     ["widget3", "widget4"]
   ],
   "theme": "selected theme or default",
+  "separator": "pipe",
   "disabledWidgets": ["selected widgets to hide, omit if empty"],
   "cache": {
     "ttlSeconds": 60
@@ -148,7 +169,14 @@ Create `~/.claude/claude-dashboard.local.json`:
 }
 ```
 
-**Note**: Omit `"disabledWidgets"` field entirely if user chose not to hide any widgets.
+**For budget tracking** (add to any config):
+```json
+{
+  "dailyBudget": 15
+}
+```
+
+**Note**: Omit `"disabledWidgets"` field entirely if user chose not to hide any widgets. Omit `"dailyBudget"` if not using budget tracking. Omit `"separator"` if using default pipe style.
 
 ### 3. Update settings.json
 

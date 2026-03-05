@@ -36,13 +36,6 @@ export const toolActivityWidget: Widget<ToolActivityData> = {
     const { translations: t } = ctx;
     const theme = getTheme();
 
-    if (ctx.compact) {
-      if (data.running.length === 0) {
-        return colorize(`⚙️ ${data.completed}✓`, theme.secondary);
-      }
-      return `${colorize('⚙️', theme.warning)} ${data.running.length}▶${data.completed}✓`;
-    }
-
     if (data.running.length === 0) {
       return colorize(
         `${t.widgets.tools}: ${data.completed} ${t.widgets.done}`,

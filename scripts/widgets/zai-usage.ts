@@ -68,7 +68,7 @@ export const zaiUsageWidget: Widget<ZaiUsageData> = {
       // 5-hour token usage
       if (data.tokensPercent !== null) {
         let tokenPart = `${t.labels['5h']}: ${formatPercent(data.tokensPercent)}`;
-        if (!ctx.compact && data.tokensResetAt) {
+        if (data.tokensResetAt) {
           tokenPart += ` (${formatTimeRemaining(new Date(data.tokensResetAt), t)})`;
         }
         parts.push(tokenPart);
@@ -77,7 +77,7 @@ export const zaiUsageWidget: Widget<ZaiUsageData> = {
       // Monthly MCP usage (1m = 1 month)
       if (data.mcpPercent !== null) {
         let mcpPart = `${t.labels['1m']}: ${formatPercent(data.mcpPercent)}`;
-        if (!ctx.compact && data.mcpResetAt) {
+        if (data.mcpResetAt) {
           mcpPart += ` (${formatTimeRemaining(new Date(data.mcpResetAt), t)})`;
         }
         parts.push(mcpPart);

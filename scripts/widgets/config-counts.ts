@@ -145,15 +145,6 @@ export const configCountsWidget: Widget<ConfigCountsData> = {
     const { translations: t } = ctx;
     const parts: string[] = [];
 
-    if (ctx.compact) {
-      // Short labels: C:2 R:3 M:4 H:1
-      if (data.claudeMd > 0) parts.push(`C:${data.claudeMd}`);
-      if (data.rules > 0) parts.push(`R:${data.rules}`);
-      if (data.mcps > 0) parts.push(`M:${data.mcps}`);
-      if (data.hooks > 0) parts.push(`H:${data.hooks}`);
-      return colorize(parts.join(' '), getTheme().secondary);
-    }
-
     if (data.claudeMd > 0) {
       parts.push(`${t.widgets.claudeMd}: ${data.claudeMd}`);
     }

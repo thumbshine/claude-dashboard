@@ -22,8 +22,7 @@ function renderRateLimit(data: RateLimitData, ctx: WidgetContext, labelKey: Labe
   const color = getColorForPercent(data.utilization);
   const label = `${t.labels[labelKey]}: ${colorize(`${data.utilization}%`, color)}`;
 
-  // Skip reset time in compact mode
-  if (ctx.compact || !data.resetsAt) return label;
+  if (!data.resetsAt) return label;
   return `${label} (${formatTimeRemaining(data.resetsAt, t)})`;
 }
 

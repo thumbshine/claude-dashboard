@@ -33,7 +33,11 @@
     "hooks": "Hooks",
     "burnRate": "Rate",
     "cache": "Cache",
-    "toLimit": "to"
+    "toLimit": "to",
+    "forecast": "Forecast",
+    "budget": "Budget",
+    "performance": "Perf",
+    "tokenBreakdown": "Tokens"
   },
   "checkUsage": {
     "title": "CLI Usage Dashboard",

@@ -50,10 +50,7 @@ export const burnRateWidget: Widget<BurnRateData> = {
     return { tokensPerMinute };
   },
 
-  render(data: BurnRateData, ctx: WidgetContext): string {
-    if (ctx.compact) {
-      return `🔥 ${formatTokens(Math.round(data.tokensPerMinute))}/m`;
-    }
+  render(data: BurnRateData, _ctx: WidgetContext): string {
     return `🔥 ${formatTokens(Math.round(data.tokensPerMinute))}/min`;
   },
 };

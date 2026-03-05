@@ -8,9 +8,6 @@ import type { Widget } from './base.js';
 import type { WidgetContext, ProjectInfoData } from '../types.js';
 import { colorize, getTheme } from '../utils/colors.js';
 
-/** Maximum directory name length in compact mode before truncation */
-const COMPACT_DIR_MAX_LENGTH = 10;
-
 /**
  * Run git command asynchronously with timeout
  */
@@ -111,16 +108,12 @@ export const projectInfoWidget: Widget<ProjectInfoData> = {
     };
   },
 
-  render(data: ProjectInfoData, ctx: WidgetContext): string {
+  render(data: ProjectInfoData, _ctx: WidgetContext): string {
     const theme = getTheme();
     const parts: string[] = [];
 
-    // Directory name with folder icon (truncate in compact mode)
-    let dirName = data.dirName;
-    if (ctx.compact && dirName.length > COMPACT_DIR_MAX_LENGTH) {
-      dirName = dirName.slice(0, COMPACT_DIR_MAX_LENGTH - 1) + '…';
-    }
-    parts.push(colorize(`📁 ${dirName}`, theme.folder));
+    // Directory name with folder icon
+    parts.push(colorize(`📁 ${data.dirName}`, theme.folder));
 
     // Git branch in parentheses with ahead/behind indicators
     if (data.gitBranch) {

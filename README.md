@@ -42,15 +42,14 @@ git clone https://github.com/uppinote20/claude-dashboard.git ~/.claude/plugins/c
 
 > Adds project info, session ID, session duration, burn rate, todo progress
 
-**Detailed (4 lines):**
+**Detailed (5 lines):**
 
 ![Detailed](images/detailed.png)
 
-> Adds depletion time, config counts, tool activity, agent status, cache hit, Codex/Gemini usage
+> Adds depletion time, config counts, tool/agent status, cache hit, performance badge, token breakdown, forecast, budget, Codex/Gemini usage
 
 Multi-provider support: z.ai/ZHIPU, Codex, Gemini auto-detected when installed.
 
-**Adaptive width:** Widgets automatically wrap to the next line when the terminal is narrow—no widget is removed, just reflowed. Wide widgets switch to compact rendering individually. Set `"rightReserve"` in config to adjust reserved space for Claude Code's notification area.
 
 ## Widgets
 
@@ -77,9 +76,13 @@ Multi-provider support: z.ai/ZHIPU, Codex, Gemini auto-detected when installed.
 | | `geminiUsage` | Google Gemini CLI - current model (auto-hide if not installed)³ |
 | | `geminiUsageAll` | Google Gemini CLI - all models (auto-hide if not installed)³ |
 | | `zaiUsage` | z.ai/ZHIPU usage (auto-hide if not using z.ai)⁴ |
+| **Insights** | `tokenBreakdown` | Input/output/cache write/read token breakdown |
+| | `performance` | Composite efficiency badge (cache hit + output ratio) |
+| | `forecast` | Estimated hourly cost based on session rate |
+| | `budget` | Daily spending vs configured budget limit⁵ |
 
 > ¹ Assumes all utilization came from this session; improves as session runs longer.
-> ² Auto-hides if `~/.codex/auth.json` not found. ³ Auto-hides if `~/.gemini/oauth_creds.json` not found. ⁴ Auto-hides if not detected via `ANTHROPIC_BASE_URL`.
+> ² Auto-hides if `~/.codex/auth.json` not found. ³ Auto-hides if `~/.gemini/oauth_creds.json` not found. ⁴ Auto-hides if not detected via `ANTHROPIC_BASE_URL`. ⁵ Requires `"dailyBudget"` in config.
 
 i18n: English and Korean supported (auto-detect or set via setup).
 
@@ -89,7 +92,7 @@ i18n: English and Korean supported (auto-detect or set via setup).
 # Preset modes
 /claude-dashboard:setup compact             # 1 line (default)
 /claude-dashboard:setup normal en pro       # 2 lines, English, Pro plan
-/claude-dashboard:setup detailed ko max     # 4 lines, Korean, Max plan
+/claude-dashboard:setup detailed ko max     # 5 lines, Korean, Max plan
 
 # Custom mode: control widget order and line composition
 # Format: "widget1,widget2,...|widget3,widget4,..." (| separates lines)
@@ -114,7 +117,7 @@ i18n: English and Korean supported (auto-detect or set via setup).
 |------|-------|---------|
 | `compact` | 1 | model, context, cost, rateLimit5h/7d/7dSonnet, zaiUsage |
 | `normal` | 2 | + projectInfo, sessionId, sessionDuration, burnRate, todoProgress |
-| `detailed` | 4 | + depletionTime, configCounts, toolActivity, agentStatus, cacheHit, codexUsage, geminiUsage |
+| `detailed` | 5 | + depletionTime, configCounts, toolActivity, agentStatus, cacheHit, performance, tokenBreakdown, forecast, budget, codexUsage, geminiUsage |
 
 **Configuration file** (`~/.claude/claude-dashboard.local.json`):
 
@@ -128,12 +131,29 @@ i18n: English and Korean supported (auto-detect or set via setup).
     ["projectInfo", "todoProgress"]
   ],
   "theme": "default",
+  "separator": "pipe",
+  "dailyBudget": 15,
   "disabledWidgets": [],
   "cache": { "ttlSeconds": 60 }
 }
 ```
 
-**Themes:** `default` (pastel) / `minimal` (monochrome) / `catppuccin` / `dracula` / `gruvbox`
+Or use preset shorthand for quick configuration:
+```json
+{
+  "preset": "MC$R|BDO",
+  "theme": "tokyoNight",
+  "separator": "dot"
+}
+```
+
+**Themes:** `default` (pastel) / `minimal` (monochrome) / `catppuccin` / `dracula` / `gruvbox` / `nord` / `tokyoNight` / `solarized`
+
+**Separators:** `pipe` (│, default) / `space` / `dot` (·) / `arrow` (›)
+
+**Preset Shortcuts:** Quick layout with single characters — `"preset": "MC$R|BDO"` (M=model, C=context, $=cost, R=rateLimit5h, etc.)
+
+**Budget Tracking:** Set `"dailyBudget": 15` to track daily spending. Shows ⚠️ at 80% and 🚨 at 95%.
 
 **Widget Toggle:** Add widget IDs to `disabledWidgets` to hide them from any display mode.
 

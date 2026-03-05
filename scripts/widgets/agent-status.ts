@@ -36,13 +36,6 @@ export const agentStatusWidget: Widget<AgentStatusData> = {
     const { translations: t } = ctx;
     const theme = getTheme();
 
-    if (ctx.compact) {
-      if (data.active.length === 0) {
-        return colorize(`🤖 ${data.completed}✓`, theme.secondary);
-      }
-      return `${colorize('🤖', theme.info)} ${data.active.length}▶${data.completed}✓`;
-    }
-
     if (data.active.length === 0) {
       return colorize(
         `${t.widgets.agent}: ${data.completed} ${t.widgets.done}`,

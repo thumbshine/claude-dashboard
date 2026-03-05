@@ -11,7 +11,7 @@ import { formatTimeRemaining } from '../utils/formatters.js';
 import { debugLog } from '../utils/debug.js';
 
 /**
- * Format rate limit with optional reset time (skipped in compact mode)
+ * Format rate limit with optional reset time
  */
 function formatRateLimit(
   label: string,
@@ -22,7 +22,7 @@ function formatRateLimit(
   const color = getColorForPercent(percent);
   let result = `${label}: ${colorize(`${Math.round(percent)}%`, color)}`;
 
-  if (!ctx.compact && resetAt) {
+  if (resetAt) {
     const resetTime = formatTimeRemaining(new Date(resetAt * 1000), ctx.translations);
     if (resetTime) {
       result += ` (${resetTime})`;
