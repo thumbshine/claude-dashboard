@@ -15,9 +15,8 @@ import { debugLog } from './debug.js';
 
 const API_TIMEOUT_MS = 5000;
 const MAX_RETRY_AFTER_MS = 3000;
-const STALE_CACHE_TTL_MULTIPLIER = 10;
 const CACHE_DIR = path.join(os.homedir(), '.cache', 'claude-dashboard');
-const CACHE_MAX_AGE_SECONDS = 3600;
+const CACHE_MAX_AGE_SECONDS = 86400;
 const CLEANUP_INTERVAL_MS = 3600000;
 
 /**
@@ -85,7 +84,7 @@ export async function fetchUsageLimits(ttlSeconds: number = 300): Promise<UsageL
       const cached = usageCacheMap.get(lastTokenHash);
       if (cached) return cached.data;
 
-      const fileCache = await loadFileCache(lastTokenHash, ttlSeconds * STALE_CACHE_TTL_MULTIPLIER);
+      const fileCache = await loadFileCache(lastTokenHash, Infinity);
       if (fileCache) return fileCache;
     }
     return null;
@@ -125,7 +124,7 @@ export async function fetchUsageLimits(ttlSeconds: number = 300): Promise<UsageL
     const staleMemory = usageCacheMap.get(tokenHash);
     if (staleMemory) return staleMemory.data;
 
-    const staleFile = await loadFileCache(tokenHash, ttlSeconds * STALE_CACHE_TTL_MULTIPLIER);
+    const staleFile = await loadFileCache(tokenHash, Infinity);
     if (staleFile) return staleFile;
 
     return null;

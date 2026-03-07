@@ -85,9 +85,8 @@ function debugLog(context, message, error) {
 // scripts/utils/api-client.ts
 var API_TIMEOUT_MS = 5e3;
 var MAX_RETRY_AFTER_MS = 3e3;
-var STALE_CACHE_TTL_MULTIPLIER = 10;
 var CACHE_DIR = path.join(os.homedir(), ".cache", "claude-dashboard");
-var CACHE_MAX_AGE_SECONDS = 3600;
+var CACHE_MAX_AGE_SECONDS = 86400;
 var CLEANUP_INTERVAL_MS = 36e5;
 var usageCacheMap = /* @__PURE__ */ new Map();
 var pendingRequests = /* @__PURE__ */ new Map();
@@ -116,7 +115,7 @@ async function fetchUsageLimits(ttlSeconds = 300) {
       const cached = usageCacheMap.get(lastTokenHash);
       if (cached)
         return cached.data;
-      const fileCache2 = await loadFileCache(lastTokenHash, ttlSeconds * STALE_CACHE_TTL_MULTIPLIER);
+      const fileCache2 = await loadFileCache(lastTokenHash, Infinity);
       if (fileCache2)
         return fileCache2;
     }
@@ -147,7 +146,7 @@ async function fetchUsageLimits(ttlSeconds = 300) {
     const staleMemory = usageCacheMap.get(tokenHash);
     if (staleMemory)
       return staleMemory.data;
-    const staleFile = await loadFileCache(tokenHash, ttlSeconds * STALE_CACHE_TTL_MULTIPLIER);
+    const staleFile = await loadFileCache(tokenHash, Infinity);
     if (staleFile)
       return staleFile;
     return null;

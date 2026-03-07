@@ -228,7 +228,7 @@ describe('api-client', () => {
       const { getCredentials } = await import('../utils/credentials.js');
       vi.mocked(getCredentials).mockResolvedValue(testToken);
 
-      // Write a stale but not too old file cache (within STALE_CACHE_TTL_MULTIPLIER * ttlSeconds)
+      // Write a stale file cache (API failure falls back to any existing file cache)
       const staleLimits = {
         five_hour: { used: 30, limit: 100, remaining: 70, reset_at: '2024-01-01T00:00:00Z' },
         seven_day: null,
@@ -331,9 +331,9 @@ describe('api-client', () => {
         JSON.stringify({ data: { five_hour: null, seven_day: null, seven_day_sonnet: null }, timestamp: Date.now() })
       );
 
-      // Set file mtime to 2 hours ago (older than CACHE_MAX_AGE_SECONDS = 3600)
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-      await utimes(oldCacheFile, twoHoursAgo, twoHoursAgo);
+      // Set file mtime to 25 hours ago (older than CACHE_MAX_AGE_SECONDS = 86400)
+      const twentyFiveHoursAgo = new Date(Date.now() - 25 * 60 * 60 * 1000);
+      await utimes(oldCacheFile, twentyFiveHoursAgo, twentyFiveHoursAgo);
 
       // Verify old file exists
       const filesBefore = await readdir(ACTUAL_CACHE_DIR);
