@@ -69,7 +69,7 @@ CLAUDE.md: 2 │ ⚙️ 12 done │ 🤖 Agent: 1 │ 📦 85% │ 🟢 72%
 /claude-dashboard:setup custom auto max "model,context,cost|projectInfo,todoProgress"
 ```
 
-`|`로 줄을 구분하고, 쉼표로 위젯을 나열합니다. 사용 가능한 위젯은 [위젯](/guides/widgets/) 페이지를 참고하세요.
+`|`로 줄을 구분하고, 쉼표로 위젯을 나열합니다. 사용 가능한 위젯은 [위젯](/ko/guides/widgets/) 페이지를 참고하세요.
 
 ## 언어 및 플랜 설정
 

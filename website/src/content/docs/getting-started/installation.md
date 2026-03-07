@@ -31,4 +31,4 @@ git clone https://github.com/uppinote20/claude-dashboard.git ~/.claude/plugins/c
 
 ## Next Steps
 
-Once installation is complete, follow the [Quick Start](/en/getting-started/quick-start/) guide to set up your first configuration.
+Once installation is complete, follow the [Quick Start](/getting-started/quick-start/) guide to set up your first configuration.

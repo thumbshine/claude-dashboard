@@ -70,7 +70,7 @@ For quick configuration, you can use a preset string instead of specifying lines
 }
 ```
 
-When `preset` is set, it overrides `displayMode` with `custom` and generates the line layout from the shorthand string. See [Preset Shortcuts](/en/guides/presets/) for the character mapping.
+When `preset` is set, it overrides `displayMode` with `custom` and generates the line layout from the shorthand string. See [Preset Shortcuts](/guides/presets/) for the character mapping.
 
 ## Budget Tracking
 

@@ -31,4 +31,4 @@ git clone https://github.com/uppinote20/claude-dashboard.git ~/.claude/plugins/c
 
 ## 다음 단계
 
-설치가 완료되면 [빠른 시작](/getting-started/quick-start/) 가이드를 참고하여 첫 설정을 진행하세요.
+설치가 완료되면 [빠른 시작](/ko/getting-started/quick-start/) 가이드를 참고하여 첫 설정을 진행하세요.

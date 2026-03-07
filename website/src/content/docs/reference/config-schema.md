@@ -80,7 +80,7 @@ type WidgetId =
   | 'tokenBreakdown' | 'performance' | 'forecast' | 'budget';
 ```
 
-See the [Widget Reference](/en/reference/widget-reference/) for detailed information about each widget.
+See the [Widget Reference](/reference/widget-reference/) for detailed information about each widget.
 
 ## Default Configuration
 

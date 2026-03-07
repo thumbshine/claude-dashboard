@@ -71,7 +71,7 @@ You can pass additional arguments for language and plan:
 
 ## What's Next
 
-- Learn more about each mode in the [Display Modes](/en/guides/display-modes/) guide
-- See all available widgets in the [Widgets](/en/guides/widgets/) guide
-- Customize colors with [Themes](/en/guides/themes/)
-- Fine-tune your layout with [Configuration](/en/guides/configuration/)
+- Learn more about each mode in the [Display Modes](/guides/display-modes/) guide
+- See all available widgets in the [Widgets](/guides/widgets/) guide
+- Customize colors with [Themes](/guides/themes/)
+- Fine-tune your layout with [Configuration](/guides/configuration/)

@@ -73,7 +73,7 @@ This creates a 2-line layout:
 - **Line 1:** model, context, cost
 - **Line 2:** projectInfo, todoProgress
 
-See the [Configuration](/en/guides/configuration/) guide for full details on custom mode.
+See the [Configuration](/guides/configuration/) guide for full details on custom mode.
 
 ## Multi-Provider Support
 
