@@ -26,11 +26,15 @@ interface ModelSettings {
   fastMode: boolean;
 }
 
-const DEFAULT_SETTINGS: ModelSettings = { effortLevel: 'high', fastMode: false };
+function getDefaultEffort(modelId: string): EffortLevel {
+  if (modelId.includes('opus-4-6')) return 'medium';
+  return 'high';
+}
 
 let settingsCache: (ModelSettings & { mtime: number }) | null = null;
 
-async function getModelSettings(): Promise<ModelSettings> {
+async function getModelSettings(modelId: string): Promise<ModelSettings> {
+  const defaultEffort = getDefaultEffort(modelId);
   const settingsPath = join(homedir(), '.claude', 'settings.json');
 
   try {
@@ -42,7 +46,7 @@ async function getModelSettings(): Promise<ModelSettings> {
     const settings = JSON.parse(content);
     const effortLevel: EffortLevel = isEffortLevel(settings.effortLevel)
       ? settings.effortLevel
-      : 'high';
+      : defaultEffort;
     const fastMode = settings.fastMode === true;
     settingsCache = { mtime: fileStat.mtimeMs, effortLevel, fastMode };
     return { effortLevel, fastMode };
@@ -55,7 +59,7 @@ async function getModelSettings(): Promise<ModelSettings> {
     return { effortLevel: envEffort, fastMode: false };
   }
 
-  return DEFAULT_SETTINGS;
+  return { effortLevel: defaultEffort, fastMode: false };
 }
 
 export const modelWidget: Widget<ModelData> = {
@@ -64,7 +68,8 @@ export const modelWidget: Widget<ModelData> = {
 
   async getData(ctx: WidgetContext): Promise<ModelData | null> {
     const { model } = ctx.stdin;
-    const { effortLevel, fastMode } = await getModelSettings();
+    const modelId = model?.id || '';
+    const { effortLevel, fastMode } = await getModelSettings(modelId);
 
     return {
       id: model?.id || '',

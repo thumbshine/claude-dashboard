@@ -896,9 +896,14 @@ var EFFORT_LEVELS = /* @__PURE__ */ new Set(["high", "medium", "low"]);
 function isEffortLevel(value) {
   return typeof value === "string" && EFFORT_LEVELS.has(value);
 }
-var DEFAULT_SETTINGS = { effortLevel: "high", fastMode: false };
+function getDefaultEffort(modelId) {
+  if (modelId.includes("opus-4-6"))
+    return "medium";
+  return "high";
+}
 var settingsCache = null;
-async function getModelSettings() {
+async function getModelSettings(modelId) {
+  const defaultEffort = getDefaultEffort(modelId);
   const settingsPath = join2(homedir2(), ".claude", "settings.json");
   try {
     const fileStat = await stat3(settingsPath);
@@ -907,7 +912,7 @@ async function getModelSettings() {
     }
     const content = await readFile3(settingsPath, "utf-8");
     const settings = JSON.parse(content);
-    const effortLevel = isEffortLevel(settings.effortLevel) ? settings.effortLevel : "high";
+    const effortLevel = isEffortLevel(settings.effortLevel) ? settings.effortLevel : defaultEffort;
     const fastMode = settings.fastMode === true;
     settingsCache = { mtime: fileStat.mtimeMs, effortLevel, fastMode };
     return { effortLevel, fastMode };
@@ -918,14 +923,15 @@ async function getModelSettings() {
   if (isEffortLevel(envEffort)) {
     return { effortLevel: envEffort, fastMode: false };
   }
-  return DEFAULT_SETTINGS;
+  return { effortLevel: defaultEffort, fastMode: false };
 }
 var modelWidget = {
   id: "model",
   name: "Model",
   async getData(ctx) {
     const { model } = ctx.stdin;
-    const { effortLevel, fastMode } = await getModelSettings();
+    const modelId = model?.id || "";
+    const { effortLevel, fastMode } = await getModelSettings(modelId);
     return {
       id: model?.id || "",
       displayName: model?.display_name || "-",
