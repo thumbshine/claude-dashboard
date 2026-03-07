@@ -14,7 +14,7 @@ The compact mode displays essential metrics on a single line. This is the defaul
 **Widgets:** model, context, cost, rateLimit5h, rateLimit7d, rateLimit7dSonnet, zaiUsage
 
 ```
-Opus(H) | ---- 80% | $1.25 | 5h: 42% | 7d: 69%
+🤖 Opus(H) │ ██░░ 80% │ $1.25 │ 5h: 42% │ 7d: 69%
 ```
 
 ```
@@ -29,8 +29,8 @@ Adds project context, session tracking, and progress information on a second lin
 **Line 2:** projectInfo, sessionId, sessionDuration, burnRate, todoProgress
 
 ```
-Opus(H) | ---- 80% | $1.25 | 5h: 42% | 7d: 69%
-project (main) | abc123 | 45m | 5K/m | 3/5
+🤖 Opus(H) │ ██░░ 80% │ $1.25 │ 5h: 42% │ 7d: 69%
+📁 project (main ↑3) │ 🔑 abc123 │ ⏱ 45m │ 🔥 5K/m │ ✓ 3/5
 ```
 
 ```
@@ -48,11 +48,11 @@ Shows all available widgets across five lines, including analytics, tool activit
 **Line 5:** codexUsage, geminiUsage
 
 ```
-Opus(H) | ---- 80% | $1.25 | 5h: 42% | 7d: 69%
-project (main) | abc123 | 45m | 5K/m | 2h | 3/5
-CLAUDE.md: 2 | 12 done | Agent: 1 | 85% | 72%
-In 30K Out 8K | ~$8/h | $5/$15
-codex | gemini
+🤖 Opus(H) │ ██░░ 80% │ $1.25 │ 5h: 42% │ 7d: 69%
+📁 project (main ↑3) │ 🔑 abc123 │ ⏱ 45m │ 🔥 5K/m │ ⏳ 2h │ ✓ 3/5
+CLAUDE.md: 2 │ ⚙️ 12 done │ 🤖 Agent: 1 │ 📦 85% │ 🟢 72%
+📊 In 30K · Out 8K │ 📈 ~$8/h │ 💵 $5/$15
+🔷 codex │ 💎 gemini
 ```
 
 ```

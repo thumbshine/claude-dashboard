@@ -62,9 +62,9 @@ $0.03
 
 **Example output:**
 ```
-my-project (main)
-my-project (feature ↑3)
-my-project (main ↑2↓1)
+📁 my-project (main)
+📁 my-project (feature ↑3)
+📁 my-project (main ↑2↓1)
 ```
 
 ## Rate Limit Widgets
