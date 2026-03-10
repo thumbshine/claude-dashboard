@@ -87,7 +87,7 @@ describe('api-client', () => {
 
       // Mock fetch
       const mockLimits = {
-        five_hour: { used: 100, limit: 1000, remaining: 900, reset_at: '2024-01-01T00:00:00Z' },
+        five_hour: { utilization: 0.1, resets_at: '2024-01-01T00:00:00Z' },
         seven_day: null,
         seven_day_sonnet: null,
       };
@@ -153,7 +153,7 @@ describe('api-client', () => {
       await deleteFileCacheForToken('retry-test-token');
 
       const mockLimits = {
-        five_hour: { used: 10, limit: 100, remaining: 90, reset_at: '2024-01-01T00:00:00Z' },
+        five_hour: { utilization: 0.1, resets_at: '2024-01-01T00:00:00Z' },
         seven_day: null,
         seven_day_sonnet: null,
       };
@@ -401,7 +401,7 @@ describe('api-client', () => {
       vi.mocked(getCredentials).mockResolvedValue(TEST_TOKEN);
 
       const mockLimits = {
-        five_hour: { used: 50, limit: 500, remaining: 450, reset_at: '2024-01-01T00:00:00Z' },
+        five_hour: { utilization: 0.1, resets_at: '2024-01-01T00:00:00Z' },
         seven_day: null,
         seven_day_sonnet: null,
       };
