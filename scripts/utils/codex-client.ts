@@ -9,7 +9,7 @@ import { readFile, stat, writeFile, mkdir } from 'fs/promises';
 import { execFileSync } from 'child_process';
 import os from 'os';
 import path from 'path';
-import type { CodexUsageLimits, CacheEntry } from '../types.js';
+import { NEGATIVE_CACHE_SECONDS, type CodexUsageLimits, type CacheEntry } from '../types.js';
 import { hashToken } from './hash.js';
 import { VERSION } from '../version.js';
 import { debugLog } from './debug.js';
@@ -252,11 +252,16 @@ export async function fetchCodexUsage(ttlSeconds: number = 60): Promise<CodexUsa
 
   const tokenHash = hashToken(auth.accessToken);
 
-  // Check memory cache
+  // Check memory cache (includes negative cache entries)
   const cached = codexCacheMap.get(tokenHash);
   if (cached) {
     const ageSeconds = (Date.now() - cached.timestamp) / 1000;
-    if (ageSeconds < ttlSeconds) {
+    const effectiveTtl = cached.isError ? NEGATIVE_CACHE_SECONDS : ttlSeconds;
+    if (ageSeconds < effectiveTtl) {
+      if (cached.isError) {
+        debugLog('codex', 'Negative cache hit, skipping API call');
+        return null;
+      }
       return cached.data;
     }
   }
@@ -272,7 +277,25 @@ export async function fetchCodexUsage(ttlSeconds: number = 60): Promise<CodexUsa
   pendingRequests.set(tokenHash, requestPromise);
 
   try {
-    return await requestPromise;
+    const result = await requestPromise;
+    if (result) return result;
+
+    // API failed - set negative cache to prevent rapid retries
+    debugLog('codex', `Setting negative cache for ${NEGATIVE_CACHE_SECONDS}s`);
+    codexCacheMap.set(tokenHash, {
+      data: null,
+      timestamp: Date.now(),
+      isError: true,
+    });
+
+    // Fall back to stale cache (any previous successful data)
+    if (cached && !cached.isError) {
+      debugLog('codex', 'Returning stale cache data');
+      return cached.data;
+    }
+
+    // No file cache available for Codex — return null
+    return null;
   } finally {
     pendingRequests.delete(tokenHash);
   }

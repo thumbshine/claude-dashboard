@@ -24,6 +24,10 @@ export const MOCK_TRANSLATIONS: Translations = {
     burnRate: 'Rate',
     cache: 'Cache',
     toLimit: 'to',
+    forecast: 'Forecast',
+    budget: 'Budget',
+    performance: 'Perf',
+    tokenBreakdown: 'Tokens',
   },
   checkUsage: {
     title: 'CLI Usage Dashboard',

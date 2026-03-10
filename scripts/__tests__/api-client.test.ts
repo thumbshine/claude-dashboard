@@ -2,7 +2,7 @@
  * @handbook 8.1-test-structure
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdir, writeFile, readFile, rm, readdir, stat, utimes, unlink } from 'fs/promises';
+import { mkdir, writeFile, rm, readdir, utimes, unlink } from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { hashToken } from '../utils/hash.js';
@@ -87,7 +87,7 @@ describe('api-client', () => {
 
       // Mock fetch
       const mockLimits = {
-        five_hour: { used: 100, limit: 1000, remaining: 900, reset_at: '2024-01-01T00:00:00Z' },
+        five_hour: { utilization: 0.1, resets_at: '2024-01-01T00:00:00Z' },
         seven_day: null,
         seven_day_sonnet: null,
       };
@@ -153,7 +153,7 @@ describe('api-client', () => {
       await deleteFileCacheForToken('retry-test-token');
 
       const mockLimits = {
-        five_hour: { used: 10, limit: 100, remaining: 90, reset_at: '2024-01-01T00:00:00Z' },
+        five_hour: { utilization: 0.1, resets_at: '2024-01-01T00:00:00Z' },
         seven_day: null,
         seven_day_sonnet: null,
       };
@@ -188,7 +188,7 @@ describe('api-client', () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: false,
         status: 429,
-        headers: new Map([['retry-after', '10']]),
+        headers: new Map([['retry-after', '11']]),
       });
       global.fetch = fetchMock;
 
@@ -231,9 +231,9 @@ describe('api-client', () => {
       const { getCredentials } = await import('../utils/credentials.js');
       vi.mocked(getCredentials).mockResolvedValue(testToken);
 
-      // Write a stale file cache (API failure falls back to any existing file cache)
+      // Write a stale file cache matching UsageLimits type format
       const staleLimits = {
-        five_hour: { used: 30, limit: 100, remaining: 70, reset_at: '2024-01-01T00:00:00Z' },
+        five_hour: { utilization: 0.3, resets_at: '2024-01-01T00:00:00Z' },
         seven_day: null,
         seven_day_sonnet: null,
       };
@@ -242,7 +242,7 @@ describe('api-client', () => {
         path.join(ACTUAL_CACHE_DIR, `cache-${tokenHash}.json`),
         JSON.stringify({
           data: staleLimits,
-          timestamp: Date.now() - 600_000, // 10 minutes ago (stale for 300s TTL, valid for 3000s stale TTL)
+          timestamp: Date.now() - 600_000, // 10 minutes ago (stale for 300s TTL, valid for 3600s stale TTL)
         }),
         { mode: 0o600 }
       );
@@ -259,7 +259,7 @@ describe('api-client', () => {
       const result = await fetchUsageLimits();
 
       expect(result).not.toBeNull();
-      expect(result?.five_hour?.used).toBe(30);
+      expect(result?.five_hour?.utilization).toBe(0.3);
 
       // Cleanup
       await deleteFileCacheForToken(testToken);
@@ -284,6 +284,115 @@ describe('api-client', () => {
     });
   });
 
+  describe('negative caching', () => {
+    it('should suppress API calls within negative cache TTL', async () => {
+      const testToken = 'negative-cache-test-token';
+      const { getCredentials } = await import('../utils/credentials.js');
+      vi.mocked(getCredentials).mockResolvedValue(testToken);
+      await deleteFileCacheForToken(testToken);
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+      });
+      global.fetch = fetchMock;
+
+      const { fetchUsageLimits, clearCache } = await import('../utils/api-client.js');
+      clearCache();
+
+      // First call - hits API, fails, sets negative cache
+      const result1 = await fetchUsageLimits();
+      expect(result1).toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Second call within 30s - should NOT hit API (negative cache hit)
+      const result2 = await fetchUsageLimits();
+      expect(result2).toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(1); // Still 1
+    });
+
+    it('should retry API after negative cache expires', async () => {
+      const testToken = 'negative-expire-test-token';
+      const { getCredentials } = await import('../utils/credentials.js');
+      vi.mocked(getCredentials).mockResolvedValue(testToken);
+      await deleteFileCacheForToken(testToken);
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+      });
+      global.fetch = fetchMock;
+
+      const { fetchUsageLimits } = await import('../utils/api-client.js');
+
+      // Use fake timers so Date.now() advances with vi.advanceTimersByTime
+      vi.useFakeTimers();
+
+      try {
+        // First call - fails, sets negative cache
+        await fetchUsageLimits();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        // Advance time past NEGATIVE_CACHE_SECONDS (30s)
+        vi.advanceTimersByTime(31_000);
+
+        // Negative cache should be expired — API should be called again
+        await fetchUsageLimits();
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should return stale file cache on negative cache hit when available', async () => {
+      const testToken = 'negative-stale-fallback-token';
+      const tokenHash = hashToken(testToken);
+
+      const { getCredentials } = await import('../utils/credentials.js');
+      vi.mocked(getCredentials).mockResolvedValue(testToken);
+
+      // Write a stale file cache (valid for STALE_FALLBACK_SECONDS=3600)
+      const staleLimits = {
+        five_hour: { utilization: 0.42, resets_at: '2024-06-01T00:00:00Z' },
+        seven_day: null,
+        seven_day_sonnet: null,
+      };
+      await mkdir(ACTUAL_CACHE_DIR, { recursive: true, mode: 0o700 });
+      await writeFile(
+        path.join(ACTUAL_CACHE_DIR, `cache-${tokenHash}.json`),
+        JSON.stringify({
+          data: staleLimits,
+          timestamp: Date.now() - 600_000, // 10 min ago (stale for TTL, valid for stale fallback)
+        }),
+        { mode: 0o600 }
+      );
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+      });
+      global.fetch = fetchMock;
+
+      const { fetchUsageLimits, clearCache } = await import('../utils/api-client.js');
+      clearCache();
+
+      // First call - API fails, should return stale file cache data
+      const result1 = await fetchUsageLimits();
+      expect(result1).not.toBeNull();
+      expect(result1?.five_hour?.utilization).toBe(0.42);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Second call - negative cache hit, should return stale file cache again
+      const result2 = await fetchUsageLimits();
+      expect(result2).not.toBeNull();
+      expect(result2?.five_hour?.utilization).toBe(0.42);
+      expect(fetchMock).toHaveBeenCalledTimes(1); // Still 1
+
+      // Cleanup
+      await deleteFileCacheForToken(testToken);
+    });
+  });
+
   describe('file cache integration', () => {
     const TEST_TOKEN = 'integration-test-token-' + Date.now();
 
@@ -292,7 +401,7 @@ describe('api-client', () => {
       vi.mocked(getCredentials).mockResolvedValue(TEST_TOKEN);
 
       const mockLimits = {
-        five_hour: { used: 50, limit: 500, remaining: 450, reset_at: '2024-01-01T00:00:00Z' },
+        five_hour: { utilization: 0.1, resets_at: '2024-01-01T00:00:00Z' },
         seven_day: null,
         seven_day_sonnet: null,
       };

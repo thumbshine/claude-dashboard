@@ -60,6 +60,7 @@ var DEFAULT_CONFIG = {
     ttlSeconds: 300
   }
 };
+var NEGATIVE_CACHE_SECONDS = 30;
 
 // scripts/utils/colors.ts
 var THEMES = {
@@ -484,7 +485,7 @@ function debugLog(context, message, error) {
 
 // scripts/utils/api-client.ts
 var API_TIMEOUT_MS = 5e3;
-var MAX_RETRY_AFTER_MS = 3e3;
+var MAX_RETRY_AFTER_MS = 1e4;
 var STALE_FALLBACK_SECONDS = 3600;
 var CACHE_DIR = path.join(os.homedir(), ".cache", "claude-dashboard");
 var CACHE_CLEANUP_AGE_SECONDS = 3600;
@@ -507,18 +508,19 @@ function isCacheValid(tokenHash, ttlSeconds) {
   if (!cache)
     return false;
   const ageSeconds = (Date.now() - cache.timestamp) / 1e3;
-  return ageSeconds < ttlSeconds;
+  const effectiveTtl = cache.isError ? NEGATIVE_CACHE_SECONDS : ttlSeconds;
+  return ageSeconds < effectiveTtl;
 }
 async function fetchUsageLimits(ttlSeconds = 300) {
   const token = await getCredentials();
   if (!token) {
     if (lastTokenHash) {
       const cached = usageCacheMap.get(lastTokenHash);
-      if (cached)
+      if (cached && !cached.isError)
         return cached.data;
-      const fileCache2 = await loadFileCache(lastTokenHash, STALE_FALLBACK_SECONDS);
-      if (fileCache2)
-        return fileCache2;
+      const fileCache = await loadFileCache(lastTokenHash, STALE_FALLBACK_SECONDS);
+      if (fileCache)
+        return fileCache;
     }
     return null;
   }
@@ -526,13 +528,18 @@ async function fetchUsageLimits(ttlSeconds = 300) {
   lastTokenHash = tokenHash;
   if (isCacheValid(tokenHash, ttlSeconds)) {
     const cached = usageCacheMap.get(tokenHash);
-    if (cached)
+    if (cached) {
+      if (cached.isError) {
+        debugLog("api", "Negative cache hit, returning stale or null");
+        return loadFileCache(tokenHash, STALE_FALLBACK_SECONDS);
+      }
       return cached.data;
+    }
   }
-  const fileCache = await loadFileCache(tokenHash, ttlSeconds);
-  if (fileCache) {
-    usageCacheMap.set(tokenHash, { data: fileCache, timestamp: Date.now() });
-    return fileCache;
+  const fileCacheRaw = await loadFileCacheRaw(tokenHash, ttlSeconds);
+  if (fileCacheRaw) {
+    usageCacheMap.set(tokenHash, { data: fileCacheRaw.data, timestamp: fileCacheRaw.timestamp });
+    return fileCacheRaw.data;
   }
   const pending = pendingRequests.get(tokenHash);
   if (pending) {
@@ -545,7 +552,13 @@ async function fetchUsageLimits(ttlSeconds = 300) {
     if (result)
       return result;
     const staleMemory = usageCacheMap.get(tokenHash);
-    if (staleMemory)
+    debugLog("api", `Setting negative cache for ${NEGATIVE_CACHE_SECONDS}s`);
+    usageCacheMap.set(tokenHash, {
+      data: null,
+      timestamp: Date.now(),
+      isError: true
+    });
+    if (staleMemory && !staleMemory.isError)
       return staleMemory.data;
     const staleFile = await loadFileCache(tokenHash, STALE_FALLBACK_SECONDS);
     if (staleFile)
@@ -609,19 +622,23 @@ async function fetchFromApi(token, tokenHash) {
     return null;
   }
 }
-async function loadFileCache(tokenHash, ttlSeconds) {
+async function loadFileCacheRaw(tokenHash, ttlSeconds) {
   try {
     const cacheFile = getCacheFilePath(tokenHash);
     const raw = await readFile2(cacheFile, "utf-8");
     const content = JSON.parse(raw);
     const ageSeconds = (Date.now() - content.timestamp) / 1e3;
     if (ageSeconds < ttlSeconds) {
-      return content.data;
+      return { data: content.data, timestamp: content.timestamp };
     }
     return null;
   } catch {
     return null;
   }
+}
+async function loadFileCache(tokenHash, ttlSeconds) {
+  const raw = await loadFileCacheRaw(tokenHash, ttlSeconds);
+  return raw?.data ?? null;
 }
 async function saveFileCache(tokenHash, data) {
   try {
@@ -1913,7 +1930,12 @@ async function fetchCodexUsage(ttlSeconds = 60) {
   const cached = codexCacheMap.get(tokenHash);
   if (cached) {
     const ageSeconds = (Date.now() - cached.timestamp) / 1e3;
-    if (ageSeconds < ttlSeconds) {
+    const effectiveTtl = cached.isError ? NEGATIVE_CACHE_SECONDS : ttlSeconds;
+    if (ageSeconds < effectiveTtl) {
+      if (cached.isError) {
+        debugLog("codex", "Negative cache hit, skipping API call");
+        return null;
+      }
       return cached.data;
     }
   }
@@ -1924,7 +1946,20 @@ async function fetchCodexUsage(ttlSeconds = 60) {
   const requestPromise = fetchFromCodexApi(auth);
   pendingRequests3.set(tokenHash, requestPromise);
   try {
-    return await requestPromise;
+    const result = await requestPromise;
+    if (result)
+      return result;
+    debugLog("codex", `Setting negative cache for ${NEGATIVE_CACHE_SECONDS}s`);
+    codexCacheMap.set(tokenHash, {
+      data: null,
+      timestamp: Date.now(),
+      isError: true
+    });
+    if (cached && !cached.isError) {
+      debugLog("codex", "Returning stale cache data");
+      return cached.data;
+    }
+    return null;
   } finally {
     pendingRequests3.delete(tokenHash);
   }
@@ -2329,7 +2364,12 @@ async function fetchGeminiUsage(ttlSeconds = 60) {
   const cached = geminiCacheMap.get(tokenHash);
   if (cached) {
     const ageSeconds = (Date.now() - cached.timestamp) / 1e3;
-    if (ageSeconds < ttlSeconds) {
+    const effectiveTtl = cached.isError ? NEGATIVE_CACHE_SECONDS : ttlSeconds;
+    if (ageSeconds < effectiveTtl) {
+      if (cached.isError) {
+        debugLog("gemini", "Negative cache hit, skipping API call");
+        return null;
+      }
       debugLog("gemini", "fetchGeminiUsage: returning cached data");
       return cached.data;
     }
@@ -2341,7 +2381,20 @@ async function fetchGeminiUsage(ttlSeconds = 60) {
   const requestPromise = fetchFromGeminiApi(credentials, projectId);
   pendingRequests4.set(tokenHash, requestPromise);
   try {
-    return await requestPromise;
+    const result = await requestPromise;
+    if (result)
+      return result;
+    debugLog("gemini", `Setting negative cache for ${NEGATIVE_CACHE_SECONDS}s`);
+    geminiCacheMap.set(tokenHash, {
+      data: null,
+      timestamp: Date.now(),
+      isError: true
+    });
+    if (cached && !cached.isError) {
+      debugLog("gemini", "Returning stale cache data");
+      return cached.data;
+    }
+    return null;
   } finally {
     pendingRequests4.delete(tokenHash);
   }
@@ -2558,7 +2611,12 @@ async function fetchZaiUsage(ttlSeconds = 60) {
   const cached = zaiCacheMap.get(cacheKey);
   if (cached) {
     const ageSeconds = (Date.now() - cached.timestamp) / 1e3;
-    if (ageSeconds < ttlSeconds) {
+    const effectiveTtl = cached.isError ? NEGATIVE_CACHE_SECONDS : ttlSeconds;
+    if (ageSeconds < effectiveTtl) {
+      if (cached.isError) {
+        debugLog("zai", "Negative cache hit, skipping API call");
+        return null;
+      }
       debugLog("zai", "fetchZaiUsage: returning cached data");
       return cached.data;
     }
@@ -2573,8 +2631,19 @@ async function fetchZaiUsage(ttlSeconds = 60) {
     const result = await requestPromise;
     if (result) {
       zaiCacheMap.set(cacheKey, { data: result, timestamp: Date.now() });
+      return result;
     }
-    return result;
+    debugLog("zai", `Setting negative cache for ${NEGATIVE_CACHE_SECONDS}s`);
+    zaiCacheMap.set(cacheKey, {
+      data: null,
+      timestamp: Date.now(),
+      isError: true
+    });
+    if (cached && !cached.isError) {
+      debugLog("zai", "Returning stale cache data");
+      return cached.data;
+    }
+    return null;
   } finally {
     pendingRequests5.delete(cacheKey);
   }
