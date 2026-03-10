@@ -6,7 +6,7 @@
 import type { Widget } from './base.js';
 import type { WidgetContext, TodoProgressData } from '../types.js';
 import { colorize, getColorForPercent, getTheme } from '../utils/colors.js';
-import { parseTranscript, extractTodoProgress } from '../utils/transcript-parser.js';
+import { parseTranscript, extractTodoOrTaskProgress } from '../utils/transcript-parser.js';
 import { calculatePercent } from '../utils/formatters.js';
 
 export const todoProgressWidget: Widget<TodoProgressData> = {
@@ -24,9 +24,9 @@ export const todoProgressWidget: Widget<TodoProgressData> = {
       return null;
     }
 
-    const progress = extractTodoProgress(transcript);
+    const progress = extractTodoOrTaskProgress(transcript);
 
-    // Return default data if no TodoWrite calls yet
+    // Return default data if no TodoWrite/TaskCreate calls yet
     return progress || { total: 0, completed: 0 };
   },
 

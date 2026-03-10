@@ -1444,7 +1444,7 @@ var en_default = {
     done: "done",
     running: "running",
     agent: "Agent",
-    todos: "Todos",
+    todos: "Tasks",
     claudeMd: "CLAUDE.md",
     rules: "Rules",
     mcps: "MCP",

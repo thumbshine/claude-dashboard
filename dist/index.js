@@ -712,7 +712,7 @@ var en_default = {
     done: "done",
     running: "running",
     agent: "Agent",
-    todos: "Todos",
+    todos: "Tasks",
     claudeMd: "CLAUDE.md",
     rules: "Rules",
     mcps: "MCP",
@@ -1577,6 +1577,54 @@ function extractTodoProgress(transcript) {
     total
   };
 }
+function extractTaskProgress(transcript) {
+  const tasks = /* @__PURE__ */ new Map();
+  let nextId = 1;
+  for (const entry of transcript.entries) {
+    if (entry.type !== "assistant" || !entry.message?.content)
+      continue;
+    for (const block of entry.message.content) {
+      if (block.type !== "tool_use" || !block.id || !block.input)
+        continue;
+      if (!transcript.toolResults.has(block.id))
+        continue;
+      if (block.name === "TaskCreate") {
+        const input = block.input;
+        if (input.subject) {
+          tasks.set(String(nextId), {
+            subject: input.subject,
+            status: input.status || "pending"
+          });
+          nextId++;
+        }
+      } else if (block.name === "TaskUpdate") {
+        const input = block.input;
+        if (input.taskId && tasks.has(input.taskId)) {
+          const task = tasks.get(input.taskId);
+          if (input.status)
+            task.status = input.status;
+          if (input.subject)
+            task.subject = input.subject;
+        }
+      }
+    }
+  }
+  if (tasks.size === 0)
+    return null;
+  const all = [...tasks.values()];
+  const completed = all.filter((t) => t.status === "completed").length;
+  const current = all.find(
+    (t) => t.status === "in_progress" || t.status === "pending"
+  );
+  return {
+    current: current ? { content: current.subject, status: current.status } : void 0,
+    completed,
+    total: all.length
+  };
+}
+function extractTodoOrTaskProgress(transcript) {
+  return extractTaskProgress(transcript) ?? extractTodoProgress(transcript);
+}
 function extractAgentStatus(transcript) {
   const active = [];
   let completed = 0;
@@ -1684,7 +1732,7 @@ var todoProgressWidget = {
     if (!transcript) {
       return null;
     }
-    const progress = extractTodoProgress(transcript);
+    const progress = extractTodoOrTaskProgress(transcript);
     return progress || { total: 0, completed: 0 };
   },
   render(data, ctx) {

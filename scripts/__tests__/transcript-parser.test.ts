@@ -235,6 +235,273 @@ describe('transcript-parser', () => {
     });
   });
 
+  describe('extractTaskProgress', () => {
+    it('should return null when no TaskCreate calls', async () => {
+      await writeTranscript([
+        { type: 'user', message: { content: 'hello' } },
+      ]);
+
+      const { parseTranscript, extractTaskProgress } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+
+      expect(extractTaskProgress(transcript!)).toBeNull();
+    });
+
+    it('should extract progress from TaskCreate calls', async () => {
+      await writeTranscript([
+        {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'tc-1',
+                name: 'TaskCreate',
+                input: { subject: 'Implement parser', status: 'completed' },
+              },
+              {
+                type: 'tool_use',
+                id: 'tc-2',
+                name: 'TaskCreate',
+                input: { subject: 'Write tests' },
+              },
+              {
+                type: 'tool_use',
+                id: 'tc-3',
+                name: 'TaskCreate',
+                input: { subject: 'Update docs', status: 'pending' },
+              },
+            ],
+          },
+        },
+        {
+          type: 'user',
+          message: {
+            content: [
+              { type: 'tool_result', tool_use_id: 'tc-1' },
+              { type: 'tool_result', tool_use_id: 'tc-2' },
+              { type: 'tool_result', tool_use_id: 'tc-3' },
+            ],
+          },
+        },
+      ]);
+
+      const { parseTranscript, extractTaskProgress } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      const progress = extractTaskProgress(transcript!);
+
+      expect(progress).not.toBeNull();
+      expect(progress?.completed).toBe(1);
+      expect(progress?.total).toBe(3);
+      // 'Write tests' has no explicit status, defaults to 'pending'
+      expect(progress?.current?.content).toBe('Write tests');
+      expect(progress?.current?.status).toBe('pending');
+    });
+
+    it('should apply TaskUpdate status changes', async () => {
+      await writeTranscript([
+        {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'tc-1',
+                name: 'TaskCreate',
+                input: { subject: 'Task A', status: 'pending' },
+              },
+              {
+                type: 'tool_use',
+                id: 'tc-2',
+                name: 'TaskCreate',
+                input: { subject: 'Task B', status: 'pending' },
+              },
+            ],
+          },
+        },
+        {
+          type: 'user',
+          message: {
+            content: [
+              { type: 'tool_result', tool_use_id: 'tc-1' },
+              { type: 'tool_result', tool_use_id: 'tc-2' },
+            ],
+          },
+        },
+        {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'tu-1',
+                name: 'TaskUpdate',
+                input: { taskId: '1', status: 'completed' },
+              },
+              {
+                type: 'tool_use',
+                id: 'tu-2',
+                name: 'TaskUpdate',
+                input: { taskId: '2', status: 'in_progress' },
+              },
+            ],
+          },
+        },
+        {
+          type: 'user',
+          message: {
+            content: [
+              { type: 'tool_result', tool_use_id: 'tu-1' },
+              { type: 'tool_result', tool_use_id: 'tu-2' },
+            ],
+          },
+        },
+      ]);
+
+      const { parseTranscript, extractTaskProgress } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      const progress = extractTaskProgress(transcript!);
+
+      expect(progress).not.toBeNull();
+      expect(progress?.completed).toBe(1);
+      expect(progress?.total).toBe(2);
+      expect(progress?.current?.content).toBe('Task B');
+      expect(progress?.current?.status).toBe('in_progress');
+    });
+
+    it('should ignore incomplete TaskCreate calls', async () => {
+      await writeTranscript([
+        {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'tc-1',
+                name: 'TaskCreate',
+                input: { subject: 'Completed task' },
+              },
+              {
+                type: 'tool_use',
+                id: 'tc-2',
+                name: 'TaskCreate',
+                input: { subject: 'Pending tool result' },
+              },
+            ],
+          },
+        },
+        {
+          type: 'user',
+          message: {
+            content: [
+              { type: 'tool_result', tool_use_id: 'tc-1' },
+              // tc-2 has no tool_result → still in-flight
+            ],
+          },
+        },
+      ]);
+
+      const { parseTranscript, extractTaskProgress } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      const progress = extractTaskProgress(transcript!);
+
+      expect(progress).not.toBeNull();
+      expect(progress?.total).toBe(1);
+    });
+  });
+
+  describe('extractTodoOrTaskProgress', () => {
+    it('should prefer Tasks API over TodoWrite', async () => {
+      await writeTranscript([
+        // TodoWrite call
+        {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'todo-1',
+                name: 'TodoWrite',
+                input: {
+                  todos: [
+                    { content: 'Old task', status: 'pending' },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        {
+          type: 'user',
+          message: { content: [{ type: 'tool_result', tool_use_id: 'todo-1' }] },
+        },
+        // TaskCreate call
+        {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'tc-1',
+                name: 'TaskCreate',
+                input: { subject: 'New task', status: 'in_progress' },
+              },
+            ],
+          },
+        },
+        {
+          type: 'user',
+          message: { content: [{ type: 'tool_result', tool_use_id: 'tc-1' }] },
+        },
+      ]);
+
+      const { parseTranscript, extractTodoOrTaskProgress } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      const progress = extractTodoOrTaskProgress(transcript!);
+
+      expect(progress).not.toBeNull();
+      // Should use TaskCreate data, not TodoWrite
+      expect(progress?.current?.content).toBe('New task');
+      expect(progress?.total).toBe(1);
+    });
+
+    it('should fall back to TodoWrite when no TaskCreate calls', async () => {
+      await writeTranscript([
+        {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'todo-1',
+                name: 'TodoWrite',
+                input: {
+                  todos: [
+                    { content: 'Legacy task', status: 'completed' },
+                    { content: 'Another task', status: 'pending' },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        {
+          type: 'user',
+          message: { content: [{ type: 'tool_result', tool_use_id: 'todo-1' }] },
+        },
+      ]);
+
+      const { parseTranscript, extractTodoOrTaskProgress } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      const progress = extractTodoOrTaskProgress(transcript!);
+
+      expect(progress).not.toBeNull();
+      expect(progress?.completed).toBe(1);
+      expect(progress?.total).toBe(2);
+      expect(progress?.current?.content).toBe('Another task');
+    });
+  });
+
   describe('extractAgentStatus', () => {
     it('should extract active and completed agents', async () => {
       await writeTranscript([

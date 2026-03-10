@@ -5,7 +5,7 @@
  */
 
 import { open, stat } from 'fs/promises';
-import type { TranscriptEntry, ParsedTranscript } from '../types.js';
+import type { TranscriptEntry, ParsedTranscript, TodoProgressData } from '../types.js';
 
 /**
  * Cached transcript data with incremental parsing state
@@ -217,6 +217,72 @@ export function extractTodoProgress(
     completed,
     total,
   };
+}
+
+/**
+ * Extract TaskCreate/TaskUpdate calls to get task progress.
+ * TaskCreate calls are scanned in order with sequential IDs (1, 2, 3...),
+ * then TaskUpdate calls apply status/subject changes by taskId.
+ */
+export function extractTaskProgress(
+  transcript: ParsedTranscript
+): TodoProgressData | null {
+  // Collect completed TaskCreate/TaskUpdate tool_use IDs in order
+  const tasks = new Map<string, { subject: string; status: string }>();
+  let nextId = 1;
+
+  for (const entry of transcript.entries) {
+    if (entry.type !== 'assistant' || !entry.message?.content) continue;
+
+    for (const block of entry.message.content) {
+      if (block.type !== 'tool_use' || !block.id || !block.input) continue;
+      if (!transcript.toolResults.has(block.id)) continue;
+
+      if (block.name === 'TaskCreate') {
+        const input = block.input as { subject?: string; status?: string };
+        if (input.subject) {
+          tasks.set(String(nextId), {
+            subject: input.subject,
+            status: input.status || 'pending',
+          });
+          nextId++;
+        }
+      } else if (block.name === 'TaskUpdate') {
+        const input = block.input as { taskId?: string; status?: string; subject?: string };
+        if (input.taskId && tasks.has(input.taskId)) {
+          const task = tasks.get(input.taskId)!;
+          if (input.status) task.status = input.status;
+          if (input.subject) task.subject = input.subject;
+        }
+      }
+    }
+  }
+
+  if (tasks.size === 0) return null;
+
+  const all = [...tasks.values()];
+  const completed = all.filter((t) => t.status === 'completed').length;
+  const current = all.find(
+    (t) => t.status === 'in_progress' || t.status === 'pending'
+  );
+
+  return {
+    current: current
+      ? { content: current.subject, status: current.status as 'in_progress' | 'pending' }
+      : undefined,
+    completed,
+    total: all.length,
+  };
+}
+
+/**
+ * Unified progress extractor: Tasks API (TaskCreate/TaskUpdate) first,
+ * falls back to TodoWrite for backward compatibility.
+ */
+export function extractTodoOrTaskProgress(
+  transcript: ParsedTranscript
+): TodoProgressData | null {
+  return extractTaskProgress(transcript) ?? extractTodoProgress(transcript);
 }
 
 /**
