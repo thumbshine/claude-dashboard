@@ -37,8 +37,8 @@ sidebar:
 
 - **ID**: `projectInfo`
 - **데이터 소스**: stdin (workspace) + git
-- **표시 내용**: 현재 작업 디렉토리 이름, git 브랜치, upstream 대비 ahead/behind 커밋 수.
-- **출력 예시**: `📁 my-project (main)`, `📁 dashboard (feat/widgets ↑3)`, `📁 api (main ↑2↓1)`
+- **표시 내용**: 현재 작업 디렉토리 이름, git 브랜치, upstream 대비 ahead/behind 커밋 수. CWD가 프로젝트 루트와 다르면 하위 경로를 표시하고, worktree 세션에서는 worktree 표시기를 보여줍니다.
+- **출력 예시**: `📁 my-project (main)`, `📁 dashboard (feat/widgets ↑3)`, `📁 api (main ↑2↓1)`, `📁 project (src/components) (main)`, `📁 project (main) 🌳 wt:feature-branch`
 
 ## Rate Limits
 
@@ -99,8 +99,8 @@ sidebar:
 
 - **ID**: `toolActivity`
 - **데이터 소스**: transcript (JSONL)
-- **표시 내용**: 현재 실행 중인 도구와 완료된 도구의 수.
-- **출력 예시**: `⚙️ Read ▸ 12 done`, `⚙️ Bash ▸ 5 done`
+- **표시 내용**: 현재 실행 중인 도구와 완료된 도구의 수. 실행 중인 도구는 대상(파일 경로, 명령어 등)과 함께 표시됩니다.
+- **출력 예시**: `⚙️ 12 done`, `⚙️ Read(app.ts) (8 done)`, `⚙️ Read(app.ts), Bash(npm test) (12 done)`
 
 ### agentStatus
 
@@ -209,3 +209,17 @@ sidebar:
 - **데이터 소스**: stdin (version)
 - **표시 내용**: Claude Code 버전. stdin에 버전 정보가 없으면 위젯이 숨겨집니다.
 - **출력 예시**: `v1.0.80`
+
+### linesChanged
+
+- **ID**: `linesChanged`
+- **데이터 소스**: stdin (cost.total_lines_added, cost.total_lines_removed)
+- **표시 내용**: 현재 세션에서 추가/삭제된 줄 수. 변경이 없으면 위젯이 숨겨집니다.
+- **출력 예시**: `+156 -23`, `+42`, `-15`
+
+### outputStyle
+
+- **ID**: `outputStyle`
+- **데이터 소스**: stdin (output_style)
+- **표시 내용**: 현재 출력 스타일 이름. "default"이거나 설정되지 않은 경우 위젯이 숨겨집니다.
+- **출력 예시**: `concise`, `verbose`

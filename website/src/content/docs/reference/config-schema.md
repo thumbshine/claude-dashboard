@@ -78,7 +78,9 @@ type WidgetId =
   | 'burnRate' | 'depletionTime' | 'cacheHit'
   | 'codexUsage' | 'geminiUsage' | 'geminiUsageAll' | 'zaiUsage'
   | 'tokenBreakdown' | 'performance' | 'forecast' | 'budget'
-  | 'version';
+  | 'version'
+  | 'linesChanged'
+  | 'outputStyle';
 ```
 
 See the [Widget Reference](/reference/widget-reference/) for detailed information about each widget.

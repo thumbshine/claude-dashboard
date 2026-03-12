@@ -45,14 +45,14 @@ Shows all available widgets across five lines, including analytics, tool activit
 **Line 2:** projectInfo, sessionId, sessionDuration, burnRate, depletionTime, todoProgress<br/>
 **Line 3:** configCounts, toolActivity, agentStatus, cacheHit, performance<br/>
 **Line 4:** tokenBreakdown, forecast, budget<br/>
-**Line 5:** codexUsage, geminiUsage
+**Line 5:** codexUsage, geminiUsage, linesChanged, outputStyle, version
 
 ```
 🤖 Opus(H) │ ██░░ 80% │ $1.25 │ 5h: 42% │ 7d: 69%
 📁 project (main ↑3) │ 🔑 abc123 │ ⏱ 45m │ 🔥 5K/m │ ⏳ 2h │ ✓ 3/5
-CLAUDE.md: 2 │ ⚙️ 12 done │ 🤖 Agent: 1 │ 📦 85% │ 🟢 72%
+CLAUDE.md: 2 │ ⚙️ Read(app.ts) (12 done) │ 🤖 Agent: 1 │ 📦 85% │ 🟢 72%
 📊 In 30K · Out 8K │ 📈 ~$8/h │ 💵 $5/$15
-🔷 codex │ 💎 gemini
+🔷 codex │ 💎 gemini │ +156 -23 │ concise │ v1.0.80
 ```
 
 ```

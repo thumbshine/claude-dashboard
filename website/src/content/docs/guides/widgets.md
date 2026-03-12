@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-claude-dashboard provides 25+ widgets organized by category. Each widget can be individually enabled, disabled, or rearranged in your layout.
+claude-dashboard provides 27 widgets organized by category. Each widget can be individually enabled, disabled, or rearranged in your layout.
 
 ## Core
 
@@ -14,7 +14,7 @@ claude-dashboard provides 25+ widgets organized by category. Each widget can be 
 | `model` | Model name with emoji, effort level for Opus/Sonnet (H/M/L), fast mode for Opus (↯) |
 | `context` | Progress bar, percentage, tokens (green 0-50% / yellow 51-80% / red 81-100%) |
 | `cost` | Session cost in USD |
-| `projectInfo` | Directory + git branch + ahead/behind (up/down arrows) |
+| `projectInfo` | Directory + git branch + ahead/behind (↑↓), subpath when CWD differs from project root, worktree indicator (🌳) |
 
 ## Rate Limits
 
@@ -37,7 +37,7 @@ claude-dashboard provides 25+ widgets organized by category. Each widget can be 
 
 | Widget | Description |
 |--------|-------------|
-| `toolActivity` | Running/completed tools |
+| `toolActivity` | Running/completed tools with target display (e.g., `Read(app.ts)`, `Bash(npm test)`) |
 | `agentStatus` | Subagent progress |
 | `todoProgress` | Todo completion rate |
 
@@ -72,6 +72,8 @@ claude-dashboard provides 25+ widgets organized by category. Each widget can be 
 | Widget | Description |
 |--------|-------------|
 | `version` | Claude Code version display |
+| `linesChanged` | Lines added/removed count (e.g., `+156 -23`) |
+| `outputStyle` | Current output style (hidden when default) |
 
 ## Notes
 

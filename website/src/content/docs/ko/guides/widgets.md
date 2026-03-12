@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-claude-dashboard는 25개 이상의 위젯을 제공합니다. 각 위젯은 독립적으로 데이터를 가져오고 렌더링하며, 데이터를 가져올 수 없는 경우 자동으로 숨겨집니다.
+claude-dashboard는 27개의 위젯을 제공합니다. 각 위젯은 독립적으로 데이터를 가져오고 렌더링하며, 데이터를 가져올 수 없는 경우 자동으로 숨겨집니다.
 
 ## Core
 
@@ -14,7 +14,7 @@ claude-dashboard는 25개 이상의 위젯을 제공합니다. 각 위젯은 독
 | 모델 | `model` | 모델 이름과 이모지, Opus/Sonnet 노력 수준(H/M/L), Opus 빠른 모드(↯) |
 | 컨텍스트 | `context` | 프로그레스 바, 백분율, 토큰 수 (🟢 0-50% / 🟡 51-80% / 🔴 81-100%) |
 | 비용 | `cost` | 세션 비용 (USD) |
-| 프로젝트 정보 | `projectInfo` | 디렉토리 + git 브랜치 + ahead/behind (↑↓) |
+| 프로젝트 정보 | `projectInfo` | 디렉토리 + git 브랜치 + ahead/behind (↑↓), CWD가 프로젝트 루트와 다를 때 하위 경로 표시, worktree 표시기 (🌳) |
 
 ## Rate Limits
 
@@ -37,7 +37,7 @@ claude-dashboard는 25개 이상의 위젯을 제공합니다. 각 위젯은 독
 
 | 위젯 | ID | 설명 |
 |------|-----|------|
-| 도구 활동 | `toolActivity` | 실행 중/완료된 도구 |
+| 도구 활동 | `toolActivity` | 실행 중/완료된 도구 및 대상 표시 (예: `Read(app.ts)`, `Bash(npm test)`) |
 | 에이전트 상태 | `agentStatus` | 서브에이전트 진행 상황 |
 | TODO 진행률 | `todoProgress` | TODO 완료율 |
 
@@ -72,6 +72,8 @@ claude-dashboard는 25개 이상의 위젯을 제공합니다. 각 위젯은 독
 | 위젯 | ID | 설명 |
 |------|-----|------|
 | 버전 | `version` | Claude Code 버전 표시 |
+| 변경 줄 수 | `linesChanged` | 추가/삭제된 줄 수 (예: `+156 -23`) |
+| 출력 스타일 | `outputStyle` | 현재 출력 스타일 (기본값일 때 숨김) |
 
 ## 참고 사항
 

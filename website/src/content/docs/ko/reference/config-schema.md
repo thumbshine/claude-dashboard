@@ -102,7 +102,9 @@ type WidgetId =
   | 'performance'
   | 'forecast'
   | 'budget'
-  | 'version';
+  | 'version'
+  | 'linesChanged'
+  | 'outputStyle';
 ```
 
 ## 전체 설정 예시
