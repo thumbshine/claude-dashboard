@@ -37,41 +37,38 @@ sidebar:
 | `K` | configCounts | `N` | tokenBreakdown |
 | `F` | performance | `W` | forecast |
 | `U` | budget | `V` | version |
+| `L` | linesChanged | `Y` | outputStyle |
 
-## 줄 구분
+## 예시
 
-`|` 문자를 사용하여 줄을 구분합니다. `|`가 없으면 모든 위젯이 한 줄에 표시됩니다.
-
-### 예시
-
-**1줄 레이아웃:**
+### 속도 제한 포함 (1줄)
 
 ```json
-{ "preset": "MC$R" }
+{ "preset": "MC$R7S" }
 ```
 
-결과: model, context, cost, rateLimit5h
+결과: model, context, cost, rateLimit5h, rateLimit7d, rateLimit7dSonnet -- 한 줄에 모두 표시.
 
-**2줄 레이아웃:**
+### 분석 포함 (2줄)
 
 ```json
-{ "preset": "MC$R7|PDB" }
+{ "preset": "MC$R|BDEO" }
 ```
 
-결과:
-- 1줄: model, context, cost, rateLimit5h, rateLimit7d
-- 2줄: projectInfo, sessionDuration, burnRate
+- **1줄:** model, context, cost, rateLimit5h
+- **2줄:** burnRate, sessionDuration, depletionTime, todoProgress
 
-**3줄 레이아웃:**
+### 전체 모니터링
 
 ```json
-{ "preset": "MC$R7|PDBO|TAHF" }
+{ "preset": "MC$R7|PIDBO|KTAHF|NWU|XGLYV" }
 ```
 
-결과:
-- 1줄: model, context, cost, rateLimit5h, rateLimit7d
-- 2줄: projectInfo, sessionDuration, burnRate, todoProgress
-- 3줄: toolActivity, agentStatus, cacheHit, performance
+- **1줄:** model, context, cost, rateLimit5h, rateLimit7d
+- **2줄:** projectInfo, sessionId, sessionDuration, burnRate, todoProgress
+- **3줄:** configCounts, toolActivity, agentStatus, cacheHit, performance
+- **4줄:** tokenBreakdown, forecast, budget
+- **5줄:** codexUsage, geminiUsage, linesChanged, outputStyle, version
 
 ## 다른 설정과 조합
 

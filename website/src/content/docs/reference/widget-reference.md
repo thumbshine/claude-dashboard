@@ -58,13 +58,15 @@ $0.03
 |----------|-------|
 | **Widget ID** | `projectInfo` |
 | **Data Source** | stdin (workspace) + git |
-| **Description** | Shows the current directory name, git branch, and commits ahead/behind upstream. |
+| **Description** | Shows the current directory name, git branch, and commits ahead/behind upstream. When CWD differs from the project root, shows the relative subpath. In worktree sessions, shows a worktree indicator. |
 
 **Example output:**
 ```
 📁 my-project (main)
 📁 my-project (feature ↑3)
 📁 my-project (main ↑2↓1)
+📁 my-project (src/components) (main)
+📁 my-project (main) 🌳 wt:feature-branch
 ```
 
 ## Rate Limit Widgets
@@ -173,12 +175,13 @@ CLAUDE.md: 2 | rules: 3 | MCPs: 1 | hooks: 0
 |----------|-------|
 | **Widget ID** | `toolActivity` |
 | **Data Source** | transcript (JSONL) |
-| **Description** | Shows the number of running and completed tool calls in the current session. |
+| **Description** | Shows the number of running and completed tool calls in the current session. When tools are running, displays the tool name with its target (e.g., file path or command). |
 
 **Example output:**
 ```
-12 done
-1 running, 8 done
+⚙️ 12 done
+⚙️ Read(app.ts) (8 done)
+⚙️ Read(app.ts), Bash(npm test) (12 done)
 ```
 
 ### agentStatus
@@ -377,4 +380,33 @@ $14/$15 !!
 **Example output:**
 ```
 v1.0.80
+```
+
+### linesChanged
+
+| Property | Value |
+|----------|-------|
+| **Widget ID** | `linesChanged` |
+| **Data Source** | stdin (cost.total_lines_added, cost.total_lines_removed) |
+| **Description** | Shows the number of lines added and removed in the current session. Hidden when no lines have been changed. |
+
+**Example output:**
+```
++156 -23
++42
+-15
+```
+
+### outputStyle
+
+| Property | Value |
+|----------|-------|
+| **Widget ID** | `outputStyle` |
+| **Data Source** | stdin (output_style) |
+| **Description** | Shows the current output style name. Hidden when the output style is "default" or not set. |
+
+**Example output:**
+```
+concise
+verbose
 ```

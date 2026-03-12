@@ -37,6 +37,7 @@ This creates a 2-line layout:
 | `K` | configCounts | `N` | tokenBreakdown |
 | `F` | performance | `W` | forecast |
 | `U` | budget | `V` | version |
+| `L` | linesChanged | `Y` | outputStyle |
 
 ## Examples
 
@@ -60,14 +61,14 @@ Result: model, context, cost, rateLimit5h, rateLimit7d, rateLimit7dSonnet -- all
 ### Full monitoring
 
 ```json
-{ "preset": "MC$R7|PIDBO|KTAHF|NWU|XG" }
+{ "preset": "MC$R7|PIDBO|KTAHF|NWU|XGLYV" }
 ```
 
 - **Line 1:** model, context, cost, rateLimit5h, rateLimit7d
 - **Line 2:** projectInfo, sessionId, sessionDuration, burnRate, todoProgress
 - **Line 3:** configCounts, toolActivity, agentStatus, cacheHit, performance
 - **Line 4:** tokenBreakdown, forecast, budget
-- **Line 5:** codexUsage, geminiUsage
+- **Line 5:** codexUsage, geminiUsage, linesChanged, outputStyle, version
 
 ## Combining with Other Options
 
