@@ -3140,15 +3140,42 @@ var versionWidget = {
 };
 
 // scripts/widgets/lines-changed.ts
+import { execFile as execFile2 } from "child_process";
+function execGit2(args, cwd, timeout) {
+  return new Promise((resolve, reject) => {
+    execFile2("git", ["--no-optional-locks", ...args], {
+      cwd,
+      encoding: "utf-8",
+      timeout
+    }, (error, stdout) => {
+      if (error)
+        reject(error);
+      else
+        resolve(stdout);
+    });
+  });
+}
 var linesChangedWidget = {
   id: "linesChanged",
   name: "Lines Changed",
   async getData(ctx) {
-    const added = ctx.stdin.cost?.total_lines_added;
-    const removed = ctx.stdin.cost?.total_lines_removed;
-    if (added == null && removed == null || added === 0 && removed === 0)
+    const cwd = ctx.stdin.workspace?.current_dir;
+    if (!cwd)
       return null;
-    return { added: added ?? 0, removed: removed ?? 0 };
+    try {
+      const output = await execGit2(["diff", "HEAD", "--shortstat"], cwd, 1e3);
+      if (!output.trim())
+        return null;
+      const insertMatch = output.match(/(\d+) insertion/);
+      const deleteMatch = output.match(/(\d+) deletion/);
+      const added = insertMatch ? parseInt(insertMatch[1], 10) : 0;
+      const removed = deleteMatch ? parseInt(deleteMatch[1], 10) : 0;
+      if (added === 0 && removed === 0)
+        return null;
+      return { added, removed };
+    } catch {
+      return null;
+    }
   },
   render(data, _ctx) {
     const theme = getTheme();
