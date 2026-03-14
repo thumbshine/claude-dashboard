@@ -80,7 +80,7 @@ Multi-provider support: z.ai/ZHIPU, Codex, Gemini auto-detected when installed.
 | | `performance` | Composite efficiency badge (cache hit + output ratio) |
 | | `forecast` | Estimated hourly cost based on session rate |
 | | `budget` | Daily spending vs configured budget limit⁵ |
-| **Info** | `linesChanged` | Lines added/removed count (+N -N) |
+| **Info** | `linesChanged` | Uncommitted lines added/removed via git diff (+N -N) |
 | | `outputStyle` | Current output style (hidden when "default") |
 | | `version` | Claude Code version display |
 

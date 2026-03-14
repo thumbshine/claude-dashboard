@@ -429,8 +429,8 @@ v1.0.80
 | Property | Value |
 |----------|-------|
 | **Widget ID** | `linesChanged` |
-| **Data Source** | stdin (cost.total_lines_added, cost.total_lines_removed) |
-| **Description** | Shows the number of lines added and removed in the current session. Hidden when no lines have been changed. |
+| **Data Source** | git (`git diff HEAD --shortstat`) |
+| **Description** | Shows uncommitted lines added and removed via git diff. Resets naturally on commit. Hidden when no changes exist. |
 
 **Example output:**
 ```

@@ -146,7 +146,7 @@ interface Widget<T extends WidgetData> {
 | `performance` | stdin + session | Composite efficiency badge (cache hit + output ratio) |
 | `forecast` | stdin + session | Estimated hourly cost based on session rate |
 | `budget` | stdin + file | Daily spending vs configured budget limit |
-| `linesChanged` | stdin | Lines added/removed count |
+| `linesChanged` | git | Lines added/removed count |
 | `outputStyle` | stdin | Current output style |
 | `version` | stdin | Claude Code version display |
 | `tokenSpeed` | stdin | Output token generation speed (tok/s) |
