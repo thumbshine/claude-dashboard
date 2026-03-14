@@ -6,6 +6,7 @@
  * @handbook 7.1-common-api-pattern
  */
 import { readFile, writeFile, mkdir, readdir, stat, unlink } from 'fs/promises';
+import { execFile } from 'child_process';
 import os from 'os';
 import path from 'path';
 import { NEGATIVE_CACHE_SECONDS, type UsageLimits, type CacheEntry } from '../types.js';
@@ -14,6 +15,7 @@ import { hashToken } from './hash.js';
 import { VERSION } from '../version.js';
 import { debugLog } from './debug.js';
 
+const API_URL = 'https://api.anthropic.com/api/oauth/usage';
 const API_TIMEOUT_MS = 5000;
 const MAX_RETRY_AFTER_MS = 10000;
 const STALE_FALLBACK_SECONDS = 3600;
@@ -155,14 +157,14 @@ export async function fetchUsageLimits(ttlSeconds: number = 300): Promise<UsageL
 }
 
 /**
- * Make a single API request
+ * Make a single API request using Node.js fetch
  */
 async function makeRequest(token: string): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
   try {
-    return await fetch('https://api.anthropic.com/api/oauth/usage', {
+    return await fetch(API_URL, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -179,7 +181,55 @@ async function makeRequest(token: string): Promise<Response> {
 }
 
 /**
+ * Fallback API request using curl subprocess.
+ *
+ * Some environments (e.g. Node.js 20+ on Linux) get HTTP 403 from
+ * Anthropic's OAuth usage endpoint due to TLS fingerprint differences
+ * between Node's built-in HTTP client (undici) and standard clients
+ * like curl/wget/Python. This fallback uses curl as a subprocess to
+ * work around the issue.
+ */
+async function makeRequestViaCurl(token: string): Promise<{ ok: boolean; status: number; data: unknown } | null> {
+  return new Promise((resolve) => {
+    const child = execFile(
+      'curl',
+      [
+        '-s',
+        '-w', '\n%{http_code}',
+        API_URL,
+        '-H', 'Accept: application/json',
+        '-H', `User-Agent: claude-dashboard/${VERSION}`,
+        '-H', `Authorization: Bearer ${token}`,
+        '-H', 'anthropic-beta: oauth-2025-04-20',
+      ],
+      { encoding: 'utf-8', timeout: API_TIMEOUT_MS },
+      (error, stdout) => {
+        if (error) {
+          debugLog('api', 'curl fallback failed', error);
+          resolve(null);
+          return;
+        }
+        try {
+          const lines = stdout.trimEnd().split('\n');
+          const statusCode = parseInt(lines[lines.length - 1], 10);
+          const body = lines.slice(0, -1).join('\n');
+          const data = JSON.parse(body);
+          resolve({ ok: statusCode >= 200 && statusCode < 300, status: statusCode, data });
+        } catch {
+          debugLog('api', 'curl response parse failed');
+          resolve(null);
+        }
+      }
+    );
+
+    // Ensure child process is cleaned up on timeout
+    child.on('error', () => resolve(null));
+  });
+}
+
+/**
  * Internal function to fetch from API with single retry on 429
+ * and curl fallback on 403 (TLS fingerprint rejection)
  */
 async function fetchFromApi(token: string, tokenHash: string): Promise<UsageLimits | null> {
   try {
@@ -202,27 +252,44 @@ async function fetchFromApi(token: string, tokenHash: string): Promise<UsageLimi
       }
     }
 
+    // On 403, Node's TLS fingerprint may be rejected — fall back to curl
+    if (response.status === 403) {
+      debugLog('api', '403 from fetch, trying curl fallback');
+      const curlResult = await makeRequestViaCurl(token);
+      if (curlResult?.ok) {
+        return parseAndCacheLimits(curlResult.data, tokenHash);
+      }
+      debugLog('api', `curl fallback ${curlResult ? `returned ${curlResult.status}` : 'failed'}`);
+      return null;
+    }
+
     if (!response.ok) {
       return null;
     }
 
     const data = await response.json();
-
-    const limits: UsageLimits = {
-      five_hour: data.five_hour ?? null,
-      seven_day: data.seven_day ?? null,
-      seven_day_sonnet: data.seven_day_sonnet ?? null,
-    };
-
-    // Update caches
-    usageCacheMap.set(tokenHash, { data: limits, timestamp: Date.now() });
-    await saveFileCache(tokenHash, limits);
-
-    return limits;
+    return parseAndCacheLimits(data, tokenHash);
   } catch (error) {
     debugLog('api', 'Request failed', error);
     return null;
   }
+}
+
+/**
+ * Parse API response and update caches
+ */
+async function parseAndCacheLimits(data: unknown, tokenHash: string): Promise<UsageLimits> {
+  const d = data as Record<string, unknown>;
+  const limits: UsageLimits = {
+    five_hour: (d.five_hour as UsageLimits['five_hour']) ?? null,
+    seven_day: (d.seven_day as UsageLimits['seven_day']) ?? null,
+    seven_day_sonnet: (d.seven_day_sonnet as UsageLimits['seven_day_sonnet']) ?? null,
+  };
+
+  usageCacheMap.set(tokenHash, { data: limits, timestamp: Date.now() });
+  await saveFileCache(tokenHash, limits);
+
+  return limits;
 }
 
 /**

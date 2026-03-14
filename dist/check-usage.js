@@ -2,6 +2,7 @@
 
 // scripts/utils/api-client.ts
 import { readFile as readFile2, writeFile, mkdir, readdir, stat as stat2, unlink } from "fs/promises";
+import { execFile } from "child_process";
 import os from "os";
 import path from "path";
 
@@ -93,6 +94,7 @@ function debugLog(context, message, error) {
 }
 
 // scripts/utils/api-client.ts
+var API_URL = "https://api.anthropic.com/api/oauth/usage";
 var API_TIMEOUT_MS = 5e3;
 var MAX_RETRY_AFTER_MS = 1e4;
 var STALE_FALLBACK_SECONDS = 3600;
@@ -181,7 +183,7 @@ async function makeRequest(token) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
-    return await fetch("https://api.anthropic.com/api/oauth/usage", {
+    return await fetch(API_URL, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -195,6 +197,46 @@ async function makeRequest(token) {
   } finally {
     clearTimeout(timeout);
   }
+}
+async function makeRequestViaCurl(token) {
+  return new Promise((resolve) => {
+    const child = execFile(
+      "curl",
+      [
+        "-s",
+        "-w",
+        "\n%{http_code}",
+        API_URL,
+        "-H",
+        "Accept: application/json",
+        "-H",
+        `User-Agent: claude-dashboard/${VERSION}`,
+        "-H",
+        `Authorization: Bearer ${token}`,
+        "-H",
+        "anthropic-beta: oauth-2025-04-20"
+      ],
+      { encoding: "utf-8", timeout: API_TIMEOUT_MS },
+      (error, stdout) => {
+        if (error) {
+          debugLog("api", "curl fallback failed", error);
+          resolve(null);
+          return;
+        }
+        try {
+          const lines = stdout.trimEnd().split("\n");
+          const statusCode = parseInt(lines[lines.length - 1], 10);
+          const body = lines.slice(0, -1).join("\n");
+          const data = JSON.parse(body);
+          resolve({ ok: statusCode >= 200 && statusCode < 300, status: statusCode, data });
+        } catch {
+          debugLog("api", "curl response parse failed");
+          resolve(null);
+        }
+      }
+    );
+    child.on("error", () => resolve(null));
+  });
 }
 async function fetchFromApi(token, tokenHash) {
   try {
@@ -214,22 +256,35 @@ async function fetchFromApi(token, tokenHash) {
         }
       }
     }
+    if (response.status === 403) {
+      debugLog("api", "403 from fetch, trying curl fallback");
+      const curlResult = await makeRequestViaCurl(token);
+      if (curlResult?.ok) {
+        return parseAndCacheLimits(curlResult.data, tokenHash);
+      }
+      debugLog("api", `curl fallback ${curlResult ? `returned ${curlResult.status}` : "failed"}`);
+      return null;
+    }
     if (!response.ok) {
       return null;
     }
     const data = await response.json();
-    const limits = {
-      five_hour: data.five_hour ?? null,
-      seven_day: data.seven_day ?? null,
-      seven_day_sonnet: data.seven_day_sonnet ?? null
-    };
-    usageCacheMap.set(tokenHash, { data: limits, timestamp: Date.now() });
-    await saveFileCache(tokenHash, limits);
-    return limits;
+    return parseAndCacheLimits(data, tokenHash);
   } catch (error) {
     debugLog("api", "Request failed", error);
     return null;
   }
+}
+async function parseAndCacheLimits(data, tokenHash) {
+  const d = data;
+  const limits = {
+    five_hour: d.five_hour ?? null,
+    seven_day: d.seven_day ?? null,
+    seven_day_sonnet: d.seven_day_sonnet ?? null
+  };
+  usageCacheMap.set(tokenHash, { data: limits, timestamp: Date.now() });
+  await saveFileCache(tokenHash, limits);
+  return limits;
 }
 async function loadFileCacheRaw(tokenHash, ttlSeconds) {
   try {
