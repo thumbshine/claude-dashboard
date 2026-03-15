@@ -38,7 +38,8 @@
     "budget": "Budget",
     "performance": "Perf",
     "tokenBreakdown": "Tokens",
-    "todayCost": "Today"
+    "todayCost": "Today",
+    "lastPrompt": "Last Prompt"
   },
   "checkUsage": {
     "title": "CLI Usage Dashboard",

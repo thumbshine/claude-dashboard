@@ -43,6 +43,7 @@ import { outputStyleWidget } from './output-style.js';
 import { tokenSpeedWidget } from './token-speed.js';
 import { sessionNameWidget } from './session-name.js';
 import { todayCostWidget } from './today-cost.js';
+import { lastPromptWidget } from './last-prompt.js';
 
 /**
  * Widget registry - maps widget IDs to widget implementations
@@ -79,6 +80,7 @@ const widgetRegistry = new Map<WidgetId, Widget>([
   ['tokenSpeed', tokenSpeedWidget],
   ['sessionName', sessionNameWidget],
   ['todayCost', todayCostWidget],
+  ['lastPrompt', lastPromptWidget],
 ] as [WidgetId, Widget][]);
 
 /**
