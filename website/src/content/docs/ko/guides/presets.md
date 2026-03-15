@@ -39,7 +39,7 @@ sidebar:
 | `U` | budget | `V` | version |
 | `L` | linesChanged | `Y` | outputStyle |
 | `Q` | tokenSpeed | `J` | sessionName |
-| `@` | todayCost | | |
+| `@` | todayCost | `?` | lastPrompt |
 
 ## 예시
 

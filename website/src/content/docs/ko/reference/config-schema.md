@@ -34,7 +34,7 @@ type DisplayMode = 'compact' | 'normal' | 'detailed' | 'custom';
 |----|------|
 | `compact` | 1줄 핵심 지표 (기본값) |
 | `normal` | 2줄 (핵심 + 프로젝트/세션) |
-| `detailed` | 5줄 (모든 위젯) |
+| `detailed` | 6줄 (모든 위젯) |
 | `custom` | 사용자 정의 레이아웃 (`lines` 또는 `preset` 사용) |
 
 ## ThemeId
@@ -87,7 +87,8 @@ type WidgetId =
   | 'tokenBreakdown' | 'performance' | 'forecast' | 'budget' | 'todayCost'
   | 'version'
   | 'linesChanged'
-  | 'outputStyle';
+  | 'outputStyle'
+  | 'lastPrompt';
 ```
 
 ## 전체 설정 예시

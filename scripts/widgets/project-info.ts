@@ -7,6 +7,7 @@ import { basename, relative } from 'path';
 import type { Widget } from './base.js';
 import type { WidgetContext, ProjectInfoData } from '../types.js';
 import { colorize, getTheme } from '../utils/colors.js';
+import { osc8Link } from '../utils/formatters.js';
 import { execGit } from '../utils/git.js';
 
 /**
@@ -53,6 +54,36 @@ async function getAheadBehind(cwd: string): Promise<{ ahead: number; behind: num
   }
 }
 
+/**
+ * Get git remote origin URL
+ */
+async function getGitRemoteUrl(cwd: string): Promise<string | undefined> {
+  try {
+    const result = await execGit(['remote', 'get-url', 'origin'], cwd, 500);
+    return normalizeGitUrl(result.trim()) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Normalize git remote URL to HTTPS web URL.
+ * - git@github.com:user/repo.git   → https://github.com/user/repo
+ * - ssh://git@github.com/user/repo → https://github.com/user/repo
+ * - https://github.com/user/repo.git → https://github.com/user/repo
+ */
+function normalizeGitUrl(url: string): string | null {
+  // SSH: git@host:path or ssh://git@host/path
+  const sshMatch = url.match(/^(?:ssh:\/\/)?git@([^:/]+)[:/](.+?)(?:\.git)?$/);
+  if (sshMatch) return `https://${sshMatch[1]}/${sshMatch[2]}`;
+
+  // HTTPS: strip .git suffix and userinfo (user:token@)
+  const httpsMatch = url.match(/^https?:\/\/(?:[^@/]+@)?(.+?)(?:\.git)?$/);
+  if (httpsMatch) return `https://${httpsMatch[1]}`;
+
+  return null;
+}
+
 export const projectInfoWidget: Widget<ProjectInfoData> = {
   id: 'projectInfo',
   name: 'Project Info',
@@ -76,11 +107,12 @@ export const projectInfoWidget: Widget<ProjectInfoData> = {
     // Worktree name (only present in --worktree sessions)
     const worktreeName = ctx.stdin.worktree?.name || undefined;
 
-    // Run all git calls in parallel to reduce latency (~2s → ~1s)
-    const [branch, dirty, ab] = await Promise.all([
+    // Run all git calls in parallel to reduce latency
+    const [branch, dirty, ab, remoteUrl] = await Promise.all([
       getGitBranch(currentDir),
       isGitDirty(currentDir),
       getAheadBehind(currentDir),
+      getGitRemoteUrl(currentDir),
     ]);
 
     let gitBranch: string | undefined;
@@ -103,6 +135,9 @@ export const projectInfoWidget: Widget<ProjectInfoData> = {
       behind,
       subPath,
       worktreeName,
+      remoteUrl: remoteUrl && branch
+        ? `${remoteUrl}/tree/${branch.split('/').map(encodeURIComponent).join('/')}`
+        : undefined,
     };
   },
 
@@ -128,7 +163,11 @@ export const projectInfoWidget: Widget<ProjectInfoData> = {
         branchStr += ` ${indicators}`;
       }
 
-      parts.push(colorize(`(${branchStr})`, theme.branch));
+      // Apply OSC8 hyperlink when remote URL is available
+      const branchDisplay = data.remoteUrl
+        ? `(${osc8Link(data.remoteUrl, branchStr)})`
+        : `(${branchStr})`;
+      parts.push(colorize(branchDisplay, theme.branch));
     }
 
     // Worktree indicator (only in --worktree sessions)

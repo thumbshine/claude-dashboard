@@ -97,7 +97,8 @@ export type WidgetId =
   | 'outputStyle'
   | 'tokenSpeed'
   | 'sessionName'
-  | 'todayCost';
+  | 'todayCost'
+  | 'lastPrompt';
 
 /**
  * Display mode for status line output
@@ -125,6 +126,7 @@ export const DISPLAY_PRESETS: Record<Exclude<DisplayMode, 'custom'>, WidgetId[][
     ['configCounts', 'toolActivity', 'agentStatus', 'cacheHit', 'performance'],
     ['tokenBreakdown', 'forecast', 'budget', 'todayCost'],
     ['codexUsage', 'geminiUsage', 'linesChanged', 'outputStyle', 'version'],
+    ['lastPrompt'],
   ],
 };
 
@@ -202,6 +204,7 @@ export const PRESET_CHAR_MAP: Record<string, WidgetId> = {
   Q: 'tokenSpeed',
   J: 'sessionName',
   '@': 'todayCost',
+  '?': 'lastPrompt',
 };
 
 /**
@@ -375,6 +378,8 @@ export interface ProjectInfoData {
   subPath?: string;
   /** Worktree name when in --worktree session */
   worktreeName?: string;
+  /** Git remote HTTPS URL for OSC8 hyperlink (includes /tree/{branch}) */
+  remoteUrl?: string;
 }
 
 export interface ConfigCountsData {
@@ -630,6 +635,16 @@ export interface TodayCostData {
 }
 
 /**
+ * Last prompt data - most recent user prompt in this session
+ */
+export interface LastPromptData {
+  /** Last user prompt text */
+  text: string;
+  /** Prompt timestamp (ISO string) */
+  timestamp: string;
+}
+
+/**
  * Union type of all widget data
  */
 export type WidgetData =
@@ -660,7 +675,8 @@ export type WidgetData =
   | OutputStyleData
   | TokenSpeedData
   | SessionNameData
-  | TodayCostData;
+  | TodayCostData
+  | LastPromptData;
 
 /**
  * Transcript entry from JSONL file
@@ -677,6 +693,8 @@ export interface TranscriptEntry {
       tool_use_id?: string; // For tool_result blocks
       name?: string;
       input?: unknown;
+      /** Text content for 'text' type blocks */
+      text?: string;
     }>;
   };
 }

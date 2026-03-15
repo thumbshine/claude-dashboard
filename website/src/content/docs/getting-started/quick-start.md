@@ -44,7 +44,7 @@ Adds project info, session details, and progress tracking.
 📁 project (main ↑3) │ 🔑 abc123 │ ⏱ 45m │ 🔥 5K/m │ ✓ 3/5
 ```
 
-### Detailed (5 lines)
+### Detailed (6 lines)
 
 Shows all available widgets including analytics, multi-CLI usage, and insights.
 

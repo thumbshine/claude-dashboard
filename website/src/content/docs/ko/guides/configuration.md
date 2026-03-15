@@ -18,7 +18,7 @@ sidebar:
 # 2줄, 영어, Pro 플랜
 /claude-dashboard:setup normal en pro
 
-# 5줄, 한국어, Max 플랜
+# 6줄, 한국어, Max 플랜
 /claude-dashboard:setup detailed ko max
 ```
 

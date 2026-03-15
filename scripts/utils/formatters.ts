@@ -107,3 +107,12 @@ export function formatDuration(ms: number, t: { hours: string; minutes: string }
 export function truncate(str: string, maxLen: number): string {
   return str.length <= maxLen ? str : str.slice(0, maxLen) + '…';
 }
+
+/**
+ * Wrap text in OSC8 hyperlink escape sequence.
+ * Terminals that don't support OSC8 simply display the text without the link.
+ * @see https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
+ */
+export function osc8Link(url: string, text: string): string {
+  return `\x1b]8;;${url}\x1b\\${text}\x1b]8;;\x1b\\`;
+}

@@ -39,7 +39,7 @@ Compact의 모든 위젯에 프로젝트 정보와 세션 관련 위젯을 추�
 📁 project (main ↑3) │ 🔑 abc123 │ ⏱ 45m │ 🔥 5K/m │ ✓ 3/5
 ```
 
-## Detailed (5줄)
+## Detailed (6줄)
 
 모든 위젯을 포함하는 전체 대시보드입니다.
 
@@ -51,7 +51,8 @@ Compact의 모든 위젯에 프로젝트 정보와 세션 관련 위젯을 추�
 **2줄:** projectInfo, sessionName, sessionId, sessionDuration, burnRate, tokenSpeed, depletionTime, todoProgress<br/>
 **3줄:** configCounts, toolActivity, agentStatus, cacheHit, performance<br/>
 **4줄:** tokenBreakdown, forecast, budget, todayCost<br/>
-**5줄:** codexUsage, geminiUsage, linesChanged, outputStyle, version
+**5줄:** codexUsage, geminiUsage, linesChanged, outputStyle, version<br/>
+**6줄:** lastPrompt
 
 ```
 ◆ Opus(H) │ ██░░ 80% │ $1.25 │ 5h: 42% │ 7d: 69%
@@ -59,6 +60,7 @@ Compact의 모든 위젯에 프로젝트 정보와 세션 관련 위젯을 추�
 CLAUDE.md: 2 │ ⚙️ Read(app.ts) (12 done) │ 🤖 Agent: 1 │ 📦 85% │ 🟢 72%
 📊 In 30K · Out 8K │ 📈 ~$8/h │ 💵 $5/$15 │ 💰 오늘: $4.83
 🔷 codex │ 💎 gemini │ +156 -23 │ concise │ v1.0.80
+💬 14:32 미들웨어 인증 버그 수정해줘
 ```
 
 ## Custom (사용자 정의)

@@ -39,7 +39,7 @@ This creates a 2-line layout:
 | `U` | budget | `V` | version |
 | `L` | linesChanged | `Y` | outputStyle |
 | `Q` | tokenSpeed | `J` | sessionName |
-| `@` | todayCost | | |
+| `@` | todayCost | `?` | lastPrompt |
 
 ## Examples
 

@@ -44,7 +44,7 @@ sidebar:
 📁 project (main ↑3) │ 🔑 abc123 │ ⏱ 45m │ 🔥 5K/m │ ✓ 3/5
 ```
 
-### Detailed (5줄)
+### Detailed (6줄)
 
 모든 위젯을 포함하여 전체 대시보드를 표시합니다.
 
