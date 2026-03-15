@@ -58,7 +58,7 @@ $0.03
 |----------|-------|
 | **Widget ID** | `projectInfo` |
 | **Data Source** | stdin (workspace) + git |
-| **Description** | Shows the current directory name, git branch, and commits ahead/behind upstream. When CWD differs from the project root, shows the relative subpath. In worktree sessions, shows a worktree indicator. |
+| **Description** | Shows the current directory name, git branch (clickable OSC8 hyperlink to GitHub when remote is configured), and commits ahead/behind upstream. When CWD differs from the project root, shows the relative subpath. In worktree sessions, shows a worktree indicator. |
 
 **Example output:**
 ```
@@ -166,6 +166,20 @@ abc12345-6789-0def-ghij-klmnopqrstuv
 ```
 » feature-auth
 » bug-fix-123
+```
+
+### lastPrompt
+
+| Property | Value |
+|----------|-------|
+| **Widget ID** | `lastPrompt` |
+| **Data Source** | transcript (JSONL) |
+| **Description** | Shows the most recent user prompt in the current session with a timestamp. Useful for quickly identifying the session context. Hidden when no user prompt has been sent yet. |
+
+**Example output:**
+```
+▸ 14:32 Fix the authentication bug in middleware
+▸ 09:15 Add unit tests for the API client
 ```
 
 ### configCounts

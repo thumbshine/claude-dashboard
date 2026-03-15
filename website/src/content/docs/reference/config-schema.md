@@ -80,7 +80,8 @@ type WidgetId =
   | 'tokenBreakdown' | 'performance' | 'forecast' | 'budget' | 'todayCost'
   | 'version'
   | 'linesChanged'
-  | 'outputStyle';
+  | 'outputStyle'
+  | 'lastPrompt';
 ```
 
 See the [Widget Reference](/reference/widget-reference/) for detailed information about each widget.

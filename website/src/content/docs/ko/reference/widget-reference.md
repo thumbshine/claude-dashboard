@@ -37,7 +37,7 @@ sidebar:
 
 - **ID**: `projectInfo`
 - **데이터 소스**: stdin (workspace) + git
-- **표시 내용**: 현재 작업 디렉토리 이름, git 브랜치, upstream 대비 ahead/behind 커밋 수. CWD가 프로젝트 루트와 다르면 하위 경로를 표시하고, worktree 세션에서는 worktree 표시기를 보여줍니다.
+- **표시 내용**: 현재 작업 디렉토리 이름, git 브랜치 (remote 설정 시 OSC8 클릭 가능 링크), upstream 대비 ahead/behind 커밋 수. CWD가 프로젝트 루트와 다르면 하위 경로를 표시하고, worktree 세션에서는 worktree 표시기를 보여줍니다.
 - **출력 예시**: `📁 my-project (main)`, `📁 dashboard (feat/widgets ↑3)`, `📁 api (main ↑2↓1)`, `📁 project (src/components) (main)`, `📁 project (main) 🌳 wt:feature-branch`
 
 ## Rate Limits
@@ -92,6 +92,13 @@ sidebar:
 - **데이터 소스**: 파일 (세션 시작 시간 저장)
 - **표시 내용**: 현재 세션이 시작된 이후 경과 시간.
 - **출력 예시**: `⏱ 45m`, `⏱ 1h30m`, `⏱ 5m`
+
+### lastPrompt
+
+- **ID**: `lastPrompt`
+- **데이터 소스**: transcript (JSONL)
+- **표시 내용**: 현재 세션의 마지막 사용자 프롬프트를 타임스탬프와 함께 표시합니다. 세션 컨텍스트를 빠르게 파악할 수 있습니다. 프롬프트가 없으면 위젯이 숨겨집니다.
+- **출력 예시**: `▸ 14:32 미들웨어 인증 버그 수정해줘`, `▸ 09:15 API 클라이언트 유닛 테스트 추가`
 
 ### configCounts
 

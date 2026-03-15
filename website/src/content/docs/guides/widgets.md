@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-claude-dashboard provides 30 widgets organized by category. Each widget can be individually enabled, disabled, or rearranged in your layout.
+claude-dashboard provides 31 widgets organized by category. Each widget can be individually enabled, disabled, or rearranged in your layout.
 
 ## Core
 
@@ -14,7 +14,7 @@ claude-dashboard provides 30 widgets organized by category. Each widget can be i
 | `model` | Model name with emoji, effort level for Opus/Sonnet (H/M/L), fast mode for Opus (↯) |
 | `context` | Progress bar, percentage, tokens (green 0-50% / yellow 51-80% / red 81-100%) |
 | `cost` | Session cost in USD |
-| `projectInfo` | Directory + git branch + ahead/behind (↑↓), subpath when CWD differs from project root, worktree indicator (🌳) |
+| `projectInfo` | Directory + git branch (clickable OSC8 link) + ahead/behind (↑↓), subpath when CWD differs from project root, worktree indicator (🌳) |
 
 ## Rate Limits
 
@@ -32,6 +32,7 @@ claude-dashboard provides 30 widgets organized by category. Each widget can be i
 | `sessionIdFull` | Session ID (full UUID) |
 | `sessionName` | Session name from /rename command |
 | `sessionDuration` | Session duration |
+| `lastPrompt` | Last user prompt with timestamp |
 | `configCounts` | CLAUDE.md, rules, MCPs, hooks |
 
 ## Activity

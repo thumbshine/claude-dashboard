@@ -87,7 +87,8 @@ type WidgetId =
   | 'tokenBreakdown' | 'performance' | 'forecast' | 'budget' | 'todayCost'
   | 'version'
   | 'linesChanged'
-  | 'outputStyle';
+  | 'outputStyle'
+  | 'lastPrompt';
 ```
 
 ## 전체 설정 예시

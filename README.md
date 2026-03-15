@@ -58,13 +58,15 @@ Multi-provider support: z.ai/ZHIPU, Codex, Gemini auto-detected when installed.
 | **Core** | `model` | Model name with emoji, effort level for Opus/Sonnet (H/M/L), fast mode for Opus (↯) |
 | | `context` | Progress bar, percentage, tokens (🟢 0-50% / 🟡 51-80% / 🔴 81-100%) |
 | | `cost` | Session cost in USD |
-| | `projectInfo` | Directory + git branch + ahead/behind (↑↓), subpath from project_dir, worktree indicator (🌳) |
+| | `projectInfo` | Directory + git branch (clickable OSC8 link) + ahead/behind (↑↓), subpath from project_dir, worktree indicator (🌳) |
 | **Rate Limits** | `rateLimit5h` | 5-hour rate limit with reset countdown |
 | | `rateLimit7d` | 7-day rate limit (Max only) |
 | | `rateLimit7dSonnet` | 7-day Sonnet limit (Max only) |
 | **Session** | `sessionId` | Session ID (short 8-char) |
 | | `sessionIdFull` | Session ID (full UUID) |
+| | `sessionName` | Session name from /rename command |
 | | `sessionDuration` | Session duration |
+| | `lastPrompt` | Last user prompt with timestamp |
 | | `configCounts` | CLAUDE.md, rules, MCPs, hooks |
 | **Activity** | `toolActivity` | Running/completed tools with targets (e.g., `Read(app.ts)`) |
 | | `agentStatus` | Subagent progress |
@@ -80,6 +82,8 @@ Multi-provider support: z.ai/ZHIPU, Codex, Gemini auto-detected when installed.
 | | `performance` | Composite efficiency badge (cache hit + output ratio) |
 | | `forecast` | Estimated hourly cost based on session rate |
 | | `budget` | Daily spending vs configured budget limit⁵ |
+| | `tokenSpeed` | Output token generation speed (tok/s) |
+| | `todayCost` | Total spending across all sessions today |
 | **Info** | `linesChanged` | Uncommitted lines added/removed via git diff (+N -N) |
 | | `outputStyle` | Current output style (hidden when "default") |
 | | `version` | Claude Code version display |
