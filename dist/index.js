@@ -51,7 +51,8 @@ var PRESET_CHAR_MAP = {
   Y: "outputStyle",
   Q: "tokenSpeed",
   J: "sessionName",
-  "@": "todayCost"
+  "@": "todayCost",
+  "?": "lastPrompt"
 };
 function parsePreset(preset) {
   return preset.split("|").map(
@@ -792,7 +793,8 @@ var en_default = {
     budget: "Budget",
     performance: "Perf",
     tokenBreakdown: "Tokens",
-    todayCost: "Today"
+    todayCost: "Today",
+    lastPrompt: "Last Prompt"
   },
   checkUsage: {
     title: "CLI Usage Dashboard",
@@ -846,7 +848,8 @@ var ko_default = {
     budget: "\uC608\uC0B0",
     performance: "\uC131\uB2A5",
     tokenBreakdown: "\uD1A0\uD070",
-    todayCost: "\uC624\uB298"
+    todayCost: "\uC624\uB298",
+    lastPrompt: "\uB9C8\uC9C0\uB9C9 \uD504\uB86C\uD504\uD2B8"
   },
   checkUsage: {
     title: "CLI \uC0AC\uC6A9\uB7C9 \uB300\uC2DC\uBCF4\uB4DC",
@@ -955,6 +958,9 @@ function formatDuration(ms, t) {
 }
 function truncate(str, maxLen) {
   return str.length <= maxLen ? str : str.slice(0, maxLen) + "\u2026";
+}
+function osc8Link(url, text) {
+  return `\x1B]8;;${url}\x1B\\${text}\x1B]8;;\x1B\\`;
 }
 
 // scripts/utils/provider.ts
@@ -1242,6 +1248,23 @@ async function getAheadBehind(cwd) {
     return null;
   }
 }
+async function getGitRemoteUrl(cwd) {
+  try {
+    const result = await execGit(["remote", "get-url", "origin"], cwd, 500);
+    return normalizeGitUrl(result.trim()) || void 0;
+  } catch {
+    return void 0;
+  }
+}
+function normalizeGitUrl(url) {
+  const sshMatch = url.match(/^(?:ssh:\/\/)?git@([^:/]+)[:/](.+?)(?:\.git)?$/);
+  if (sshMatch)
+    return `https://${sshMatch[1]}/${sshMatch[2]}`;
+  const httpsMatch = url.match(/^https?:\/\/(.+?)(?:\.git)?$/);
+  if (httpsMatch)
+    return `https://${httpsMatch[1]}`;
+  return null;
+}
 var projectInfoWidget = {
   id: "projectInfo",
   name: "Project Info",
@@ -1254,10 +1277,11 @@ var projectInfoWidget = {
     const dirName = basename(projectDir || currentDir);
     const subPath = projectDir && currentDir !== projectDir && currentDir.startsWith(projectDir + "/") ? relative(projectDir, currentDir) : void 0;
     const worktreeName = ctx.stdin.worktree?.name || void 0;
-    const [branch, dirty, ab] = await Promise.all([
+    const [branch, dirty, ab, remoteUrl] = await Promise.all([
       getGitBranch(currentDir),
       isGitDirty(currentDir),
-      getAheadBehind(currentDir)
+      getAheadBehind(currentDir),
+      getGitRemoteUrl(currentDir)
     ]);
     let gitBranch;
     let ahead;
@@ -1275,7 +1299,8 @@ var projectInfoWidget = {
       ahead,
       behind,
       subPath,
-      worktreeName
+      worktreeName,
+      remoteUrl
     };
   },
   render(data, _ctx) {
@@ -1291,7 +1316,8 @@ var projectInfoWidget = {
       if (indicators) {
         branchStr += ` ${indicators}`;
       }
-      parts.push(colorize(`(${branchStr})`, theme.branch));
+      const branchDisplay = data.remoteUrl ? `(${osc8Link(data.remoteUrl, branchStr)})` : `(${branchStr})`;
+      parts.push(colorize(branchDisplay, theme.branch));
     }
     if (data.worktreeName) {
       parts.push(colorize(`\u{1F333} wt:${data.worktreeName}`, theme.info));
@@ -1745,6 +1771,22 @@ function extractTaskProgress(transcript) {
 }
 function extractTodoOrTaskProgress(transcript) {
   return extractTaskProgress(transcript) ?? extractTodoProgress(transcript);
+}
+function getLastUserPrompt(transcript) {
+  for (let i = transcript.entries.length - 1; i >= 0; i--) {
+    const entry = transcript.entries[i];
+    if (entry.type === "user" && entry.message?.content) {
+      for (const block of entry.message.content) {
+        if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
+          return {
+            text: block.text.replace(/\s+/g, " ").trim(),
+            timestamp: entry.timestamp || (/* @__PURE__ */ new Date()).toISOString()
+          };
+        }
+      }
+    }
+  }
+  return null;
 }
 function extractAgentStatus(transcript) {
   const active = [];
@@ -3310,6 +3352,26 @@ var todayCostWidget = {
   }
 };
 
+// scripts/widgets/last-prompt.ts
+var lastPromptWidget = {
+  id: "lastPrompt",
+  name: "Last Prompt",
+  async getData(ctx) {
+    const transcriptPath = ctx.stdin.transcript_path;
+    if (!transcriptPath)
+      return null;
+    const transcript = await parseTranscript(transcriptPath);
+    if (!transcript)
+      return null;
+    return getLastUserPrompt(transcript);
+  },
+  render(data, _ctx) {
+    const theme = getTheme();
+    const timeStr = new Date(data.timestamp).toTimeString().slice(0, 5);
+    return `${colorize("\u25B8", theme.accent)} ${colorize(timeStr, theme.secondary)} ${truncate(data.text, 60)}`;
+  }
+};
+
 // scripts/widgets/index.ts
 var widgetRegistry = /* @__PURE__ */ new Map([
   ["model", modelWidget],
@@ -3342,7 +3404,8 @@ var widgetRegistry = /* @__PURE__ */ new Map([
   ["outputStyle", outputStyleWidget],
   ["tokenSpeed", tokenSpeedWidget],
   ["sessionName", sessionNameWidget],
-  ["todayCost", todayCostWidget]
+  ["todayCost", todayCostWidget],
+  ["lastPrompt", lastPromptWidget]
 ]);
 function getWidget(id) {
   return widgetRegistry.get(id);
