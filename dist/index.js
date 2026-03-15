@@ -19,7 +19,8 @@ var DISPLAY_PRESETS = {
     ["projectInfo", "sessionName", "sessionId", "sessionDuration", "burnRate", "tokenSpeed", "depletionTime", "todoProgress"],
     ["configCounts", "toolActivity", "agentStatus", "cacheHit", "performance"],
     ["tokenBreakdown", "forecast", "budget", "todayCost"],
-    ["codexUsage", "geminiUsage", "linesChanged", "outputStyle", "version"]
+    ["codexUsage", "geminiUsage", "linesChanged", "outputStyle", "version"],
+    ["lastPrompt"]
   ]
 };
 var PRESET_CHAR_MAP = {

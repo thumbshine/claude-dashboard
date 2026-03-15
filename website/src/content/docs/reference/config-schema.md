@@ -32,7 +32,7 @@ type DisplayMode = 'compact' | 'normal' | 'detailed' | 'custom';
 |-------|-------|-------------|
 | `compact` | 1 | Essential metrics only |
 | `normal` | 2 | Adds project/session info |
-| `detailed` | 5 | All widgets |
+| `detailed` | 6 | All widgets |
 | `custom` | variable | User-defined layout via `lines` or `preset` |
 
 ## ThemeId

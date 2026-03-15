@@ -36,7 +36,7 @@ Configure the status line display mode, language, plan, and theme.
 /claude-dashboard:setup                          # Interactive
 /claude-dashboard:setup compact                  # 1 line, defaults
 /claude-dashboard:setup normal en pro            # 2 lines, English, Pro
-/claude-dashboard:setup detailed ko max          # 5 lines, Korean, Max
+/claude-dashboard:setup detailed ko max          # 6 lines, Korean, Max
 /claude-dashboard:setup custom auto max "model,context,cost|projectInfo,todoProgress"
 ```
 

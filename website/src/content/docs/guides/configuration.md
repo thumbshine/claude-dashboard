@@ -15,7 +15,7 @@ The fastest way to configure is via the setup command:
 # Preset modes
 /claude-dashboard:setup compact             # 1 line (default)
 /claude-dashboard:setup normal en pro       # 2 lines, English, Pro plan
-/claude-dashboard:setup detailed ko max     # 5 lines, Korean, Max plan
+/claude-dashboard:setup detailed ko max     # 6 lines, Korean, Max plan
 
 # Custom mode: control widget order and line composition
 # Format: "widget1,widget2,...|widget3,widget4,..." (| separates lines)

@@ -42,7 +42,7 @@ git clone https://github.com/uppinote20/claude-dashboard.git ~/.claude/plugins/c
 
 > Adds project info, session ID, session duration, burn rate, todo progress
 
-**Detailed (5 lines):**
+**Detailed (6 lines):**
 
 ![Detailed](images/detailed.png)
 
@@ -99,7 +99,7 @@ i18n: English and Korean supported (auto-detect or set via setup).
 # Preset modes
 /claude-dashboard:setup compact             # 1 line (default)
 /claude-dashboard:setup normal en pro       # 2 lines, English, Pro plan
-/claude-dashboard:setup detailed ko max     # 5 lines, Korean, Max plan
+/claude-dashboard:setup detailed ko max     # 6 lines, Korean, Max plan
 
 # Custom mode: control widget order and line composition
 # Format: "widget1,widget2,...|widget3,widget4,..." (| separates lines)
@@ -124,7 +124,7 @@ i18n: English and Korean supported (auto-detect or set via setup).
 |------|-------|---------|
 | `compact` | 1 | model, context, cost, rateLimit5h/7d/7dSonnet, zaiUsage |
 | `normal` | 2 | + projectInfo, sessionId, sessionDuration, burnRate, todoProgress |
-| `detailed` | 5 | + depletionTime, configCounts, toolActivity, agentStatus, cacheHit, performance, tokenBreakdown, forecast, budget, codexUsage, geminiUsage, linesChanged, outputStyle, version |
+| `detailed` | 6 | + depletionTime, configCounts, toolActivity, agentStatus, cacheHit, performance, tokenBreakdown, forecast, budget, codexUsage, geminiUsage, linesChanged, outputStyle, version, lastPrompt |
 
 **Configuration file** (`~/.claude/claude-dashboard.local.json`):
 

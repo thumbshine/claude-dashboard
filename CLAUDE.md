@@ -175,6 +175,7 @@ const DISPLAY_PRESETS = {
     ['configCounts', 'toolActivity', 'agentStatus', 'cacheHit', 'performance'],
     ['tokenBreakdown', 'forecast', 'budget', 'todayCost'],
     ['codexUsage', 'geminiUsage', 'linesChanged', 'outputStyle', 'version'],
+    ['lastPrompt'],
   ],
 };
 ```
