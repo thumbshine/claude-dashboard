@@ -6,7 +6,7 @@
 
 import { open, stat } from 'fs/promises';
 import { basename } from 'path';
-import type { TranscriptEntry, ParsedTranscript, TodoProgressData, LastPromptData } from '../types.js';
+import type { TranscriptEntry, ParsedTranscript, TodoProgressData } from '../types.js';
 import { truncate } from './formatters.js';
 
 /**
@@ -326,29 +326,6 @@ export function extractTodoOrTaskProgress(
   transcript: ParsedTranscript
 ): TodoProgressData | null {
   return extractTaskProgress(transcript) ?? extractTodoProgress(transcript);
-}
-
-/**
- * Get the last user prompt from transcript entries.
- * Iterates in reverse to find the most recent user message with text content.
- */
-export function getLastUserPrompt(
-  transcript: ParsedTranscript
-): LastPromptData | null {
-  for (let i = transcript.entries.length - 1; i >= 0; i--) {
-    const entry = transcript.entries[i];
-    if (entry.type === 'user' && entry.message?.content) {
-      for (const block of entry.message.content) {
-        if (block.type === 'text' && typeof block.text === 'string' && block.text.trim() && entry.timestamp) {
-          return {
-            text: block.text.replace(/\s+/g, ' ').trim(),
-            timestamp: entry.timestamp,
-          };
-        }
-      }
-    }
-  }
-  return null;
 }
 
 /**

@@ -1,5 +1,6 @@
 /**
  * Last Prompt widget - displays the most recent user prompt in the session
+ * Data source: ~/.claude/history.jsonl (contains only actual user input)
  * @handbook 3.3-widget-data-sources
  */
 
@@ -7,20 +8,17 @@ import type { Widget } from './base.js';
 import type { WidgetContext, LastPromptData } from '../types.js';
 import { colorize, getTheme } from '../utils/colors.js';
 import { truncate } from '../utils/formatters.js';
-import { parseTranscript, getLastUserPrompt } from '../utils/transcript-parser.js';
+import { getLastUserPrompt } from '../utils/history-parser.js';
 
 export const lastPromptWidget: Widget<LastPromptData> = {
   id: 'lastPrompt',
   name: 'Last Prompt',
 
   async getData(ctx: WidgetContext): Promise<LastPromptData | null> {
-    const transcriptPath = ctx.stdin.transcript_path;
-    if (!transcriptPath) return null;
+    const sessionId = ctx.stdin.session_id;
+    if (!sessionId) return null;
 
-    const transcript = await parseTranscript(transcriptPath);
-    if (!transcript) return null;
-
-    return getLastUserPrompt(transcript);
+    return getLastUserPrompt(sessionId);
   },
 
   render(data: LastPromptData, _ctx: WidgetContext): string {
