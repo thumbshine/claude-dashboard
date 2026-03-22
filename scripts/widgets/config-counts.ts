@@ -4,7 +4,7 @@
  * @tested scripts/__tests__/widgets.test.ts
  */
 
-import { readdir, readFile } from 'fs/promises';
+import { readdir, readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import type { Widget } from './base.js';
 import type { WidgetContext, ConfigCountsData } from '../types.js';
@@ -41,12 +41,11 @@ async function countFiles(dir: string, pattern?: RegExp): Promise<number> {
 }
 
 /**
- * Check if a file exists by attempting to read 0 bytes.
- * Avoids TOCTOU: single syscall instead of access() + readFile().
+ * Check if a file exists via stat (metadata-only syscall).
  */
 async function fileExists(path: string): Promise<boolean> {
   try {
-    await readFile(path, { flag: 'r' });
+    await stat(path);
     return true;
   } catch {
     return false;

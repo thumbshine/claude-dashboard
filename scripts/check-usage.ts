@@ -133,25 +133,29 @@ function renderCodexSection(
   codexData: CodexUsageLimits | null,
   t: Translations
 ): string[] {
+  if (!codexData) {
+    return renderSection('Codex', usage, t, () => {}, false);
+  }
+
   return renderSection('Codex', usage, t, (lines) => {
     const parts: string[] = [];
 
-    if (codexData!.primary) {
-      const percent = Math.round(codexData!.primary.usedPercent);
-      parts.push(formatUsageRow(t.labels['5h'], percent, formatTimeFromTimestamp(codexData!.primary.resetAt, t)));
+    if (codexData.primary) {
+      const percent = Math.round(codexData.primary.usedPercent);
+      parts.push(formatUsageRow(t.labels['5h'], percent, formatTimeFromTimestamp(codexData.primary.resetAt, t)));
     }
-    if (codexData!.secondary) {
-      const percent = Math.round(codexData!.secondary.usedPercent);
-      parts.push(formatUsageRow(t.labels['7d'], percent, formatTimeFromTimestamp(codexData!.secondary.resetAt, t)));
+    if (codexData.secondary) {
+      const percent = Math.round(codexData.secondary.usedPercent);
+      parts.push(formatUsageRow(t.labels['7d'], percent, formatTimeFromTimestamp(codexData.secondary.resetAt, t)));
     }
-    if (codexData!.planType) {
-      parts.push(`Plan: ${colorize(codexData!.planType, COLORS.pastelGray)}`);
+    if (codexData.planType) {
+      parts.push(`Plan: ${colorize(codexData.planType, COLORS.pastelGray)}`);
     }
 
     if (parts.length > 0) {
       lines.push(`  ${parts.join('  |  ')}`);
     }
-  }, !!codexData);
+  });
 }
 
 /**
@@ -162,11 +166,15 @@ function renderGeminiSection(
   geminiData: GeminiUsageLimits | null,
   t: Translations
 ): string[] {
-  return renderSection('Gemini', usage, t, (lines) => {
-    if (geminiData!.buckets && geminiData!.buckets.length > 0) {
-      const maxModelLen = Math.max(...geminiData!.buckets.map(b => (b.modelId || 'unknown').length));
+  if (!geminiData) {
+    return renderSection('Gemini', usage, t, () => {}, false);
+  }
 
-      for (const bucket of geminiData!.buckets) {
+  return renderSection('Gemini', usage, t, (lines) => {
+    if (geminiData.buckets && geminiData.buckets.length > 0) {
+      const maxModelLen = Math.max(...geminiData.buckets.map(b => (b.modelId || 'unknown').length));
+
+      for (const bucket of geminiData.buckets) {
         const modelName = bucket.modelId || 'unknown';
         const paddedModel = modelName.padEnd(maxModelLen);
 
@@ -180,13 +188,13 @@ function renderGeminiSection(
           lines.push(`  ${colorize(paddedModel, COLORS.pastelGray)}  ${colorize('--', COLORS.gray)}`);
         }
       }
-    } else if (geminiData!.usedPercent !== null) {
-      const color = getColorForPercent(geminiData!.usedPercent);
-      const reset = geminiData!.resetAt
-        ? ` (${formatTimeRemaining(geminiData!.resetAt, t)})`
+    } else if (geminiData.usedPercent !== null) {
+      const color = getColorForPercent(geminiData.usedPercent);
+      const reset = geminiData.resetAt
+        ? ` (${formatTimeRemaining(geminiData.resetAt, t)})`
         : '';
-      const modelInfo = geminiData!.model ? `${geminiData!.model}: ` : '';
-      lines.push(`  ${modelInfo}${colorize(`${geminiData!.usedPercent}%`, color)}${reset}`);
+      const modelInfo = geminiData.model ? `${geminiData.model}: ` : '';
+      lines.push(`  ${modelInfo}${colorize(`${geminiData.usedPercent}%`, color)}${reset}`);
     }
   }, !!geminiData);
 }

@@ -8,7 +8,7 @@
  */
 
 import { readFile, writeFile, stat } from 'fs/promises';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import os from 'os';
 import path from 'path';
 import { NEGATIVE_CACHE_SECONDS, type GeminiUsageLimits, type CacheEntry } from '../types.js';
@@ -130,7 +130,7 @@ export async function isGeminiInstalled(): Promise<boolean> {
 
 /**
  * Get OAuth token from macOS Keychain using security command.
- * Uses TTL-based cache to avoid repeated execFileSync calls (blocks event loop).
+ * Uses TTL-based cache and async execFile to avoid blocking the event loop.
  */
 async function getTokenFromKeychain(): Promise<GeminiCredentials | null> {
   if (os.platform() !== 'darwin') {
@@ -143,11 +143,17 @@ async function getTokenFromKeychain(): Promise<GeminiCredentials | null> {
   }
 
   try {
-    const result = execFileSync(
-      'security',
-      ['find-generic-password', '-s', KEYCHAIN_SERVICE_NAME, '-a', MAIN_ACCOUNT_KEY, '-w'],
-      { encoding: 'utf-8', timeout: 3000, stdio: ['pipe', 'pipe', 'pipe'] }
-    ).trim();
+    const result = await new Promise<string>((resolve, reject) => {
+      execFile(
+        'security',
+        ['find-generic-password', '-s', KEYCHAIN_SERVICE_NAME, '-a', MAIN_ACCOUNT_KEY, '-w'],
+        { encoding: 'utf-8', timeout: 3000 },
+        (error, stdout) => {
+          if (error) reject(error);
+          else resolve(stdout.trim());
+        }
+      );
+    });
 
     if (!result) {
       keychainCache = { data: null, timestamp: Date.now() };
