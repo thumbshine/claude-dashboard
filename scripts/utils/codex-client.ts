@@ -6,7 +6,7 @@
  */
 
 import { readFile, stat, writeFile, mkdir } from 'fs/promises';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import os from 'os';
 import path from 'path';
 import { NEGATIVE_CACHE_SECONDS, type CodexUsageLimits, type CacheEntry } from '../types.js';
@@ -186,15 +186,33 @@ async function saveModelCache(model: string, configMtime: number): Promise<void>
 }
 
 /**
- * Detect model by running codex exec and parsing output header
+ * Negative cache for failed model detection.
+ * Prevents repeated subprocess spawns when codex has no model configured.
  */
-function detectModelFromCodexExec(): string | null {
+let modelDetectionFailedAt: number | null = null;
+const MODEL_DETECTION_BACKOFF_MS = 300_000; // 5 minutes
+
+/**
+ * Detect model by running codex exec and parsing output header.
+ * Uses async execFile to avoid blocking the event loop.
+ */
+async function detectModelFromCodexExec(): Promise<string | null> {
+  // Skip if recently failed
+  if (modelDetectionFailedAt !== null && Date.now() - modelDetectionFailedAt < MODEL_DETECTION_BACKOFF_MS) {
+    debugLog('codex', 'detectModelFromCodexExec: skipping (backoff)');
+    return null;
+  }
+
   try {
     debugLog('codex', 'detectModelFromCodexExec: running codex exec...');
-    const output = execFileSync('codex', ['exec', '1+1='], {
-      encoding: 'utf-8',
-      timeout: 10000,
-      stdio: ['pipe', 'pipe', 'pipe'],
+    const output = await new Promise<string>((resolve, reject) => {
+      execFile('codex', ['exec', '1+1='], {
+        encoding: 'utf-8',
+        timeout: 10000,
+      }, (error, stdout) => {
+        if (error) reject(error);
+        else resolve(stdout);
+      });
     });
 
     // Parse "model: xxx" line from output header
@@ -202,12 +220,15 @@ function detectModelFromCodexExec(): string | null {
     if (match) {
       const model = match[1].trim();
       debugLog('codex', 'detectModelFromCodexExec: detected', model);
+      modelDetectionFailedAt = null;
       return model;
     }
     debugLog('codex', 'detectModelFromCodexExec: no model line found');
+    modelDetectionFailedAt = Date.now();
     return null;
   } catch (err) {
     debugLog('codex', 'detectModelFromCodexExec: error', err);
+    modelDetectionFailedAt = Date.now();
     return null;
   }
 }
@@ -232,7 +253,7 @@ export async function getCodexModel(): Promise<string | null> {
   }
 
   // 3. Detect via codex exec and cache
-  const detectedModel = detectModelFromCodexExec();
+  const detectedModel = await detectModelFromCodexExec();
   if (detectedModel) {
     await saveModelCache(detectedModel, configMtime);
     return detectedModel;
