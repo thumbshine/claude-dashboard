@@ -1488,7 +1488,7 @@ describe('widgets', () => {
     });
 
     it('should return null when transcript has no sessionName', async () => {
-      vi.spyOn(transcriptParser, 'parseTranscript').mockResolvedValue({
+      vi.spyOn(transcriptParser, 'getTranscript').mockResolvedValue({
         toolUses: new Map(),
         toolResults: new Set(),
         runningToolIds: new Set(),
@@ -1507,7 +1507,7 @@ describe('widgets', () => {
     });
 
     it('should return session name from transcript', async () => {
-      vi.spyOn(transcriptParser, 'parseTranscript').mockResolvedValue({
+      vi.spyOn(transcriptParser, 'getTranscript').mockResolvedValue({
         toolUses: new Map(),
         toolResults: new Set(),
         runningToolIds: new Set(),
