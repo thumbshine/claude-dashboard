@@ -411,12 +411,12 @@ function getSeparator() {
 
 // scripts/utils/api-client.ts
 import { readFile as readFile2, writeFile, mkdir, readdir, stat as stat2, unlink } from "fs/promises";
-import { execFile } from "child_process";
+import { execFile as execFile2 } from "child_process";
 import os from "os";
 import path from "path";
 
 // scripts/utils/credentials.ts
-import { execFileSync } from "child_process";
+import { execFile } from "child_process";
 import { readFile, stat } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
@@ -434,6 +434,21 @@ async function getCredentials() {
     return null;
   }
 }
+function execKeychainAsync() {
+  return new Promise((resolve, reject) => {
+    execFile(
+      "security",
+      ["find-generic-password", "-s", "Claude Code-credentials", "-w"],
+      { encoding: "utf-8", timeout: 3e3 },
+      (error, stdout) => {
+        if (error)
+          reject(error);
+        else
+          resolve(stdout.trim());
+      }
+    );
+  });
+}
 async function getCredentialsFromKeychain() {
   if (keychainBackoffAt !== null && Date.now() - keychainBackoffAt < KEYCHAIN_BACKOFF_MS) {
     return await getCredentialsFromFile();
@@ -442,11 +457,7 @@ async function getCredentialsFromKeychain() {
     return credentialsCache.token;
   }
   try {
-    const result = execFileSync(
-      "security",
-      ["find-generic-password", "-s", "Claude Code-credentials", "-w"],
-      { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
-    ).trim();
+    const result = await execKeychainAsync();
     const creds = JSON.parse(result);
     const token = creds?.claudeAiOauth?.accessToken ?? null;
     credentialsCache = { token, timestamp: Date.now() };
@@ -610,7 +621,7 @@ async function makeRequest(token) {
 }
 async function makeRequestViaCurl(token) {
   return new Promise((resolve) => {
-    const child = execFile(
+    const child = execFile2(
       "curl",
       [
         "-s",
@@ -1217,10 +1228,10 @@ var rateLimit7dSonnetWidget = {
 import { basename, relative } from "path";
 
 // scripts/utils/git.ts
-import { execFile as execFile2 } from "child_process";
+import { execFile as execFile3 } from "child_process";
 function execGit(args, cwd, timeout) {
   return new Promise((resolve, reject) => {
-    execFile2("git", ["--no-optional-locks", ...args], {
+    execFile3("git", ["--no-optional-locks", ...args], {
       cwd,
       encoding: "utf-8",
       timeout
@@ -2022,7 +2033,7 @@ var cacheHitWidget = {
 
 // scripts/utils/codex-client.ts
 import { readFile as readFile6, stat as stat6, writeFile as writeFile2, mkdir as mkdir3 } from "fs/promises";
-import { execFileSync as execFileSync2 } from "child_process";
+import { execFile as execFile4 } from "child_process";
 import os2 from "os";
 import path2 from "path";
 var API_TIMEOUT_MS2 = 5e3;
@@ -2105,24 +2116,39 @@ async function saveModelCache(model, configMtime) {
     debugLog("codex", "saveModelCache: error", err);
   }
 }
-function detectModelFromCodexExec() {
+var modelDetectionFailedAt = null;
+var MODEL_DETECTION_BACKOFF_MS = 3e5;
+async function detectModelFromCodexExec() {
+  if (modelDetectionFailedAt !== null && Date.now() - modelDetectionFailedAt < MODEL_DETECTION_BACKOFF_MS) {
+    debugLog("codex", "detectModelFromCodexExec: skipping (backoff)");
+    return null;
+  }
   try {
     debugLog("codex", "detectModelFromCodexExec: running codex exec...");
-    const output = execFileSync2("codex", ["exec", "1+1="], {
-      encoding: "utf-8",
-      timeout: 1e4,
-      stdio: ["pipe", "pipe", "pipe"]
+    const output = await new Promise((resolve, reject) => {
+      execFile4("codex", ["exec", "1+1="], {
+        encoding: "utf-8",
+        timeout: 1e4
+      }, (error, stdout) => {
+        if (error)
+          reject(error);
+        else
+          resolve(stdout);
+      });
     });
     const match = output.match(/^model:\s*(.+)$/m);
     if (match) {
       const model = match[1].trim();
       debugLog("codex", "detectModelFromCodexExec: detected", model);
+      modelDetectionFailedAt = null;
       return model;
     }
     debugLog("codex", "detectModelFromCodexExec: no model line found");
+    modelDetectionFailedAt = Date.now();
     return null;
   } catch (err) {
     debugLog("codex", "detectModelFromCodexExec: error", err);
+    modelDetectionFailedAt = Date.now();
     return null;
   }
 }
@@ -2137,7 +2163,7 @@ async function getCodexModel() {
   if (cachedModel) {
     return cachedModel;
   }
-  const detectedModel = detectModelFromCodexExec();
+  const detectedModel = await detectModelFromCodexExec();
   if (detectedModel) {
     await saveModelCache(detectedModel, configMtime);
     return detectedModel;
@@ -2302,7 +2328,7 @@ var codexUsageWidget = {
 
 // scripts/utils/gemini-client.ts
 import { readFile as readFile7, writeFile as writeFile3, stat as stat7 } from "fs/promises";
-import { execFileSync as execFileSync3 } from "child_process";
+import { execFileSync } from "child_process";
 import os3 from "os";
 import path3 from "path";
 var API_TIMEOUT_MS3 = 5e3;
@@ -2348,7 +2374,7 @@ async function getTokenFromKeychain() {
     return keychainCache.data;
   }
   try {
-    const result = execFileSync3(
+    const result = execFileSync(
       "security",
       ["find-generic-password", "-s", KEYCHAIN_SERVICE_NAME, "-a", MAIN_ACCOUNT_KEY, "-w"],
       { encoding: "utf-8", timeout: 3e3, stdio: ["pipe", "pipe", "pipe"] }
