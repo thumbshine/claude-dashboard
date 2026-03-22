@@ -608,7 +608,7 @@ async function fetchFromCodexApi(auth, tokenHash) {
 
 // scripts/utils/gemini-client.ts
 import { readFile as readFile4, writeFile as writeFile3, stat as stat4 } from "fs/promises";
-import { execFileSync } from "child_process";
+import { execFile as execFile4 } from "child_process";
 import os3 from "os";
 import path3 from "path";
 var API_TIMEOUT_MS3 = 5e3;
@@ -654,11 +654,19 @@ async function getTokenFromKeychain() {
     return keychainCache.data;
   }
   try {
-    const result = execFileSync(
-      "security",
-      ["find-generic-password", "-s", KEYCHAIN_SERVICE_NAME, "-a", MAIN_ACCOUNT_KEY, "-w"],
-      { encoding: "utf-8", timeout: 3e3, stdio: ["pipe", "pipe", "pipe"] }
-    ).trim();
+    const result = await new Promise((resolve, reject) => {
+      execFile4(
+        "security",
+        ["find-generic-password", "-s", KEYCHAIN_SERVICE_NAME, "-a", MAIN_ACCOUNT_KEY, "-w"],
+        { encoding: "utf-8", timeout: 3e3 },
+        (error, stdout) => {
+          if (error)
+            reject(error);
+          else
+            resolve(stdout.trim());
+        }
+      );
+    });
     if (!result) {
       keychainCache = { data: null, timestamp: Date.now() };
       return null;
@@ -1707,6 +1715,10 @@ function renderGenericSection(name, usage, t, extraParts) {
   });
 }
 function renderCodexSection(usage, codexData, t) {
+  if (!codexData) {
+    return renderSection("Codex", usage, t, () => {
+    }, false);
+  }
   return renderSection("Codex", usage, t, (lines) => {
     const parts = [];
     if (codexData.primary) {
@@ -1723,9 +1735,13 @@ function renderCodexSection(usage, codexData, t) {
     if (parts.length > 0) {
       lines.push(`  ${parts.join("  |  ")}`);
     }
-  }, !!codexData);
+  });
 }
 function renderGeminiSection(usage, geminiData, t) {
+  if (!geminiData) {
+    return renderSection("Gemini", usage, t, () => {
+    }, false);
+  }
   return renderSection("Gemini", usage, t, (lines) => {
     if (geminiData.buckets && geminiData.buckets.length > 0) {
       const maxModelLen = Math.max(...geminiData.buckets.map((b) => (b.modelId || "unknown").length));

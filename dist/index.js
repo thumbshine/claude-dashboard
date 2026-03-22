@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // scripts/statusline.ts
-import { readFile as readFile9, stat as stat9 } from "fs/promises";
+import { readFile as readFile9, stat as stat10 } from "fs/promises";
 import { join as join6 } from "path";
 import { homedir as homedir6 } from "os";
 
@@ -1366,7 +1366,7 @@ var projectInfoWidget = {
 };
 
 // scripts/widgets/config-counts.ts
-import { readdir as readdir2, readFile as readFile4 } from "fs/promises";
+import { readdir as readdir2, readFile as readFile4, stat as stat4 } from "fs/promises";
 import { join as join3 } from "path";
 var CONFIG_CACHE_TTL_MS = 3e4;
 var configCountsCache = null;
@@ -1383,7 +1383,7 @@ async function countFiles(dir, pattern) {
 }
 async function fileExists(path4) {
   try {
-    await readFile4(path4, { flag: "r" });
+    await stat4(path4);
     return true;
   } catch {
     return false;
@@ -1458,7 +1458,7 @@ var configCountsWidget = {
 };
 
 // scripts/utils/session.ts
-import { readFile as readFile5, mkdir as mkdir2, open, readdir as readdir3, unlink as unlink2, stat as stat4 } from "fs/promises";
+import { readFile as readFile5, mkdir as mkdir2, open, readdir as readdir3, unlink as unlink2, stat as stat5 } from "fs/promises";
 import { join as join4 } from "path";
 import { homedir as homedir3 } from "os";
 var SESSION_DIR = join4(homedir3(), ".cache", "claude-dashboard", "sessions");
@@ -1565,7 +1565,7 @@ async function cleanupExpiredSessions() {
         continue;
       try {
         const filePath = join4(SESSION_DIR, file);
-        const fileStat = await stat4(filePath);
+        const fileStat = await stat5(filePath);
         if (fileStat.mtimeMs < cutoffTime) {
           await unlink2(filePath);
           debugLog("session", `Cleaned up expired session: ${file}`);
@@ -1598,7 +1598,7 @@ var sessionDurationWidget = {
 };
 
 // scripts/utils/transcript-parser.ts
-import { open as open2, stat as stat5 } from "fs/promises";
+import { open as open2, stat as stat6 } from "fs/promises";
 import { basename as basename2 } from "path";
 var cachedTranscript = null;
 function createParsedTranscript() {
@@ -1722,7 +1722,7 @@ async function readFromOffset(filePath, offset, fileSize) {
 }
 async function parseTranscript(transcriptPath) {
   try {
-    const fileStat = await stat5(transcriptPath);
+    const fileStat = await stat6(transcriptPath);
     const fileSize = fileStat.size;
     if (cachedTranscript?.path === transcriptPath && cachedTranscript.size <= fileSize) {
       if (cachedTranscript.size === fileSize) {
@@ -2032,7 +2032,7 @@ var cacheHitWidget = {
 };
 
 // scripts/utils/codex-client.ts
-import { readFile as readFile6, stat as stat6, writeFile as writeFile2, mkdir as mkdir3 } from "fs/promises";
+import { readFile as readFile6, stat as stat7, writeFile as writeFile2, mkdir as mkdir3 } from "fs/promises";
 import { execFile as execFile4 } from "child_process";
 import os2 from "os";
 import path2 from "path";
@@ -2049,7 +2049,7 @@ function isValidCodexApiResponse(data) {
 }
 async function isCodexInstalled() {
   try {
-    await stat6(CODEX_AUTH_PATH);
+    await stat7(CODEX_AUTH_PATH);
     return true;
   } catch {
     return false;
@@ -2057,7 +2057,7 @@ async function isCodexInstalled() {
 }
 async function getCodexAuth() {
   try {
-    const fileStat = await stat6(CODEX_AUTH_PATH);
+    const fileStat = await stat7(CODEX_AUTH_PATH);
     if (cachedAuth && cachedAuth.mtime === fileStat.mtimeMs) {
       return cachedAuth.data;
     }
@@ -2086,7 +2086,7 @@ async function getModelFromConfig() {
 }
 async function getConfigMtime() {
   try {
-    const fileStat = await stat6(CODEX_CONFIG_PATH);
+    const fileStat = await stat7(CODEX_CONFIG_PATH);
     return fileStat.mtimeMs;
   } catch {
     return 0;
@@ -2327,8 +2327,8 @@ var codexUsageWidget = {
 };
 
 // scripts/utils/gemini-client.ts
-import { readFile as readFile7, writeFile as writeFile3, stat as stat7 } from "fs/promises";
-import { execFileSync } from "child_process";
+import { readFile as readFile7, writeFile as writeFile3, stat as stat8 } from "fs/promises";
+import { execFile as execFile5 } from "child_process";
 import os3 from "os";
 import path3 from "path";
 var API_TIMEOUT_MS3 = 5e3;
@@ -2360,7 +2360,7 @@ async function isGeminiInstalled() {
       return true;
     }
     const oauthPath = path3.join(getGeminiDir(), OAUTH_CREDS_FILE);
-    await stat7(oauthPath);
+    await stat8(oauthPath);
     return true;
   } catch {
     return false;
@@ -2374,11 +2374,19 @@ async function getTokenFromKeychain() {
     return keychainCache.data;
   }
   try {
-    const result = execFileSync(
-      "security",
-      ["find-generic-password", "-s", KEYCHAIN_SERVICE_NAME, "-a", MAIN_ACCOUNT_KEY, "-w"],
-      { encoding: "utf-8", timeout: 3e3, stdio: ["pipe", "pipe", "pipe"] }
-    ).trim();
+    const result = await new Promise((resolve, reject) => {
+      execFile5(
+        "security",
+        ["find-generic-password", "-s", KEYCHAIN_SERVICE_NAME, "-a", MAIN_ACCOUNT_KEY, "-w"],
+        { encoding: "utf-8", timeout: 3e3 },
+        (error, stdout) => {
+          if (error)
+            reject(error);
+          else
+            resolve(stdout.trim());
+        }
+      );
+    });
     if (!result) {
       keychainCache = { data: null, timestamp: Date.now() };
       return null;
@@ -2403,7 +2411,7 @@ async function getTokenFromKeychain() {
 async function getCredentialsFromFile2() {
   try {
     const oauthPath = path3.join(getGeminiDir(), OAUTH_CREDS_FILE);
-    const fileStat = await stat7(oauthPath);
+    const fileStat = await stat8(oauthPath);
     if (cachedCredentials && cachedCredentials.mtime === fileStat.mtimeMs) {
       return cachedCredentials.data;
     }
@@ -2537,7 +2545,7 @@ var PROJECT_ID_CACHE_TTL_MS = 5 * 60 * 1e3;
 async function getGeminiSettings() {
   try {
     const settingsPath = path3.join(getGeminiDir(), SETTINGS_FILE);
-    const fileStat = await stat7(settingsPath);
+    const fileStat = await stat8(settingsPath);
     if (cachedSettings && cachedSettings.mtime === fileStat.mtimeMs) {
       return cachedSettings.data;
     }
@@ -3410,14 +3418,14 @@ var todayCostWidget = {
 };
 
 // scripts/utils/history-parser.ts
-import { open as open3, stat as stat8 } from "fs/promises";
+import { open as open3, stat as stat9 } from "fs/promises";
 import { homedir as homedir5 } from "os";
 var HISTORY_PATH = `${homedir5()}/.claude/history.jsonl`;
 var CHUNK = 16 * 1024;
 var historyCache = null;
 async function getLastUserPrompt(sessionId) {
   try {
-    const fileStat = await stat8(HISTORY_PATH);
+    const fileStat = await stat9(HISTORY_PATH);
     if (historyCache && historyCache.fileSize === fileStat.size) {
       const cached = historyCache.results.get(sessionId);
       if (cached !== void 0)
@@ -3573,7 +3581,7 @@ async function readStdin() {
 }
 async function loadConfig() {
   try {
-    const fileStat = await stat9(CONFIG_PATH);
+    const fileStat = await stat10(CONFIG_PATH);
     const mtime = fileStat.mtimeMs;
     if (configCache?.mtime === mtime) {
       return configCache.config;
