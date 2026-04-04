@@ -19,6 +19,7 @@ export const MOCK_TRANSLATIONS: Translations = {
     todos: 'Todos',
     claudeMd: 'CLAUDE.md',
     agentsMd: 'AGENTS.md',
+    addedDirs: '+Dirs',
     rules: 'Rules',
     mcps: 'MCP',
     hooks: 'Hooks',

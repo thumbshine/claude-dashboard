@@ -813,6 +813,7 @@ var en_default = {
     todos: "Tasks",
     claudeMd: "CLAUDE.md",
     agentsMd: "AGENTS.md",
+    addedDirs: "+Dirs",
     rules: "Rules",
     mcps: "MCP",
     hooks: "Hooks",
@@ -868,6 +869,7 @@ var ko_default = {
     todos: "\uD560\uC77C",
     claudeMd: "CLAUDE.md",
     agentsMd: "AGENTS.md",
+    addedDirs: "+\uB514\uB809\uD1A0\uB9AC",
     rules: "\uADDC\uCE59",
     mcps: "MCP",
     hooks: "\uD6C5",
@@ -1435,8 +1437,12 @@ var configCountsWidget = {
     if (!currentDir) {
       return null;
     }
+    const addedDirs = ctx.stdin.workspace?.added_dirs?.length ?? 0;
     if (configCountsCache?.projectDir === currentDir && Date.now() - configCountsCache.timestamp < CONFIG_CACHE_TTL_MS) {
-      return configCountsCache.data;
+      if (!configCountsCache.data && addedDirs === 0)
+        return null;
+      const fsData2 = configCountsCache.data ?? { claudeMd: 0, agentsMd: 0, rules: 0, mcps: 0, hooks: 0 };
+      return { ...fsData2, addedDirs };
     }
     const claudeDir = join3(currentDir, ".claude");
     const [claudeMd, agentsMd, rules, mcps, hooks] = await Promise.all([
@@ -1446,10 +1452,11 @@ var configCountsWidget = {
       countMcps(currentDir),
       countFiles(join3(claudeDir, "hooks"))
     ]);
-    const addedDirs = ctx.stdin.workspace?.added_dirs?.length ?? 0;
-    const data = claudeMd === 0 && agentsMd === 0 && rules === 0 && mcps === 0 && hooks === 0 && addedDirs === 0 ? null : { claudeMd, agentsMd, rules, mcps, hooks, addedDirs };
-    configCountsCache = { projectDir: currentDir, data, timestamp: Date.now() };
-    return data;
+    const fsData = claudeMd === 0 && agentsMd === 0 && rules === 0 && mcps === 0 && hooks === 0 ? null : { claudeMd, agentsMd, rules, mcps, hooks };
+    configCountsCache = { projectDir: currentDir, data: fsData, timestamp: Date.now() };
+    if (!fsData && addedDirs === 0)
+      return null;
+    return { ...fsData ?? { claudeMd: 0, agentsMd: 0, rules: 0, mcps: 0, hooks: 0 }, addedDirs };
   },
   render(data, ctx) {
     const { translations: t } = ctx;
@@ -1470,7 +1477,7 @@ var configCountsWidget = {
       parts.push(`${t.widgets.hooks}: ${data.hooks}`);
     }
     if (data.addedDirs > 0) {
-      parts.push(`+Dirs: ${data.addedDirs}`);
+      parts.push(`${t.widgets.addedDirs}: ${data.addedDirs}`);
     }
     return colorize(parts.join(", "), getTheme().secondary);
   }

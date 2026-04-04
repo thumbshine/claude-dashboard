@@ -80,7 +80,7 @@ export interface StdinInput {
     };
   };
   /** Vim mode info (present only when vim mode is enabled) */
-  vim?: { mode: string };
+  vim?: { mode: 'NORMAL' | 'INSERT' };
   /** Agent info (present only when running with --agent flag) */
   agent?: { name: string };
   /** Session ID for duration tracking */
@@ -307,6 +307,7 @@ export interface Translations {
     todos: string;
     claudeMd: string;
     agentsMd: string;
+    addedDirs: string;
     rules: string;
     mcps: string;
     hooks: string;
@@ -687,8 +688,8 @@ export interface ApiDurationData {
  * Vim mode data - current vim mode when enabled
  */
 export interface VimModeData {
-  /** Vim mode: "NORMAL" or "INSERT" */
-  mode: string;
+  /** Vim mode */
+  mode: 'NORMAL' | 'INSERT';
 }
 
 /**

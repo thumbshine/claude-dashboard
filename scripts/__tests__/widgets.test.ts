@@ -1191,6 +1191,22 @@ describe('widgets', () => {
       expect(result).not.toContain('Rules');
       expect(result).not.toContain('Hooks');
     });
+
+    it('should render agentsMd count', () => {
+      const ctx = createContext();
+      const data = { claudeMd: 1, agentsMd: 2, rules: 0, mcps: 0, hooks: 0, addedDirs: 0 };
+      const result = configCountsWidget.render(data, ctx);
+      expect(result).toContain('AGENTS.md');
+      expect(result).toContain('2');
+    });
+
+    it('should render addedDirs count', () => {
+      const ctx = createContext();
+      const data = { claudeMd: 1, agentsMd: 0, rules: 0, mcps: 0, hooks: 0, addedDirs: 3 };
+      const result = configCountsWidget.render(data, ctx);
+      expect(result).toContain('+Dirs');
+      expect(result).toContain('3');
+    });
   });
 
   describe('sessionDurationWidget', () => {
@@ -1549,6 +1565,13 @@ describe('widgets', () => {
       const ctx = createContext({ transcript_path: '/tmp/transcript.jsonl' });
       const data = await sessionNameWidget.getData(ctx);
       expect(data).toBeNull();
+    });
+
+    it('should prefer stdin session_name over transcript', async () => {
+      const ctx = createContext({ session_name: 'stdin-session', transcript_path: '/tmp/transcript.jsonl' });
+      const data = await sessionNameWidget.getData(ctx);
+      expect(data).not.toBeNull();
+      expect(data?.name).toBe('stdin-session');
     });
 
     it('should return session name from transcript', async () => {

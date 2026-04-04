@@ -19,9 +19,12 @@ const CONFIG_CACHE_TTL_MS = 30_000;
 /**
  * Cached config counts keyed by project directory
  */
+/** Filesystem-only counts (addedDirs excluded — comes from stdin) */
+type FsCountsData = Omit<ConfigCountsData, 'addedDirs'>;
+
 let configCountsCache: {
   projectDir: string;
-  data: ConfigCountsData | null;
+  data: FsCountsData | null;
   timestamp: number;
 } | null = null;
 
@@ -112,17 +115,22 @@ export const configCountsWidget: Widget<ConfigCountsData> = {
       return null;
     }
 
-    // Check TTL-based cache
+    // addedDirs comes from stdin (always fresh), not filesystem
+    const addedDirs = ctx.stdin.workspace?.added_dirs?.length ?? 0;
+
+    // Check TTL-based cache for filesystem counts
     if (
       configCountsCache?.projectDir === currentDir &&
       Date.now() - configCountsCache.timestamp < CONFIG_CACHE_TTL_MS
     ) {
-      return configCountsCache.data;
+      if (!configCountsCache.data && addedDirs === 0) return null;
+      const fsData = configCountsCache.data ?? { claudeMd: 0, agentsMd: 0, rules: 0, mcps: 0, hooks: 0 };
+      return { ...fsData, addedDirs };
     }
 
     const claudeDir = join(currentDir, '.claude');
 
-    // Count all configs in parallel
+    // Count all filesystem configs in parallel
     const [claudeMd, agentsMd, rules, mcps, hooks] = await Promise.all([
       countClaudeMd(currentDir),
       countAgentsMd(currentDir),
@@ -130,18 +138,17 @@ export const configCountsWidget: Widget<ConfigCountsData> = {
       countMcps(currentDir),
       countFiles(join(claudeDir, 'hooks')),
     ]);
-    const addedDirs = ctx.stdin.workspace?.added_dirs?.length ?? 0;
 
-    // Only show if there's something to display
-    const data =
-      claudeMd === 0 && agentsMd === 0 && rules === 0 && mcps === 0 && hooks === 0 && addedDirs === 0
+    // Cache filesystem counts only (addedDirs is always live from stdin)
+    const fsData =
+      claudeMd === 0 && agentsMd === 0 && rules === 0 && mcps === 0 && hooks === 0
         ? null
-        : { claudeMd, agentsMd, rules, mcps, hooks, addedDirs };
+        : { claudeMd, agentsMd, rules, mcps, hooks };
 
-    // Cache result
-    configCountsCache = { projectDir: currentDir, data, timestamp: Date.now() };
+    configCountsCache = { projectDir: currentDir, data: fsData, timestamp: Date.now() };
 
-    return data;
+    if (!fsData && addedDirs === 0) return null;
+    return { ...(fsData ?? { claudeMd: 0, agentsMd: 0, rules: 0, mcps: 0, hooks: 0 }), addedDirs };
   },
 
   render(data: ConfigCountsData, ctx: WidgetContext): string {
@@ -164,7 +171,7 @@ export const configCountsWidget: Widget<ConfigCountsData> = {
       parts.push(`${t.widgets.hooks}: ${data.hooks}`);
     }
     if (data.addedDirs > 0) {
-      parts.push(`+Dirs: ${data.addedDirs}`);
+      parts.push(`${t.widgets.addedDirs}: ${data.addedDirs}`);
     }
 
     return colorize(parts.join(', '), getTheme().secondary);
