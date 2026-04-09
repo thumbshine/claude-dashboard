@@ -4,6 +4,7 @@
  * via the `display` field, excluding skill/command expansions.
  *
  * Uses size-based caching: only re-reads when file has grown.
+ * @handbook 3.3-widget-data-sources
  * @tested scripts/__tests__/history-parser.test.ts
  */
 
@@ -15,8 +16,20 @@ const HISTORY_PATH = `${homedir()}/.claude/history.jsonl`;
 const CHUNK = 16 * 1024;
 
 /**
- * Cached last prompt per session, invalidated by file size change.
+ * Replace [Pasted text #N ...] placeholders in display with actual content
+ * from pastedContents. Falls back to original display if content unavailable.
  */
+function resolvePastedText(
+  display: string,
+  pastedContents?: Record<string, { content?: string }>
+): string {
+  if (!pastedContents) return display;
+  return display.replace(
+    /\[Pasted text #(\d+)[^\]]*\]/g,
+    (match, id: string) => pastedContents[id]?.content ?? match
+  );
+}
+
 let historyCache: {
   fileSize: number;
   /** Cached results keyed by sessionId */
@@ -58,11 +71,13 @@ export async function getLastUserPrompt(
           const entry = JSON.parse(lines[i]) as {
             sessionId?: string;
             display?: string;
+            pastedContents?: Record<string, { content?: string }>;
             timestamp?: string;
           };
           if (entry.sessionId === sessionId && entry.display?.trim() && entry.timestamp) {
+            const text = resolvePastedText(entry.display, entry.pastedContents);
             const result: LastPromptData = {
-              text: entry.display.replace(/\s+/g, ' ').trim(),
+              text: text.replace(/\s+/g, ' ').trim(),
               timestamp: entry.timestamp,
             };
             historyCache.results.set(sessionId, result);
