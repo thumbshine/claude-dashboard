@@ -47,6 +47,7 @@ import { lastPromptWidget } from './last-prompt.js';
 import { vimModeWidget } from './vim-mode.js';
 import { apiDurationWidget } from './api-duration.js';
 import { peakHoursWidget } from './peak-hours.js';
+import { tagStatusWidget } from './tag-status.js';
 
 /**
  * Widget registry - maps widget IDs to widget implementations
@@ -87,6 +88,7 @@ const widgetRegistry = new Map<WidgetId, Widget>([
   ['vimMode', vimModeWidget],
   ['apiDuration', apiDurationWidget],
   ['peakHours', peakHoursWidget],
+  ['tagStatus', tagStatusWidget],
 ] as [WidgetId, Widget][]);
 
 /**

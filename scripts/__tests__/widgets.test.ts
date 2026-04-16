@@ -29,6 +29,7 @@
  * @covers scripts/widgets/vim-mode.ts
  * @covers scripts/widgets/api-duration.ts
  * @covers scripts/widgets/peak-hours.ts
+ * @covers scripts/widgets/tag-status.ts
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { modelWidget } from '../widgets/model.js';
@@ -60,6 +61,7 @@ import { lastPromptWidget } from '../widgets/last-prompt.js';
 import { vimModeWidget } from '../widgets/vim-mode.js';
 import { apiDurationWidget } from '../widgets/api-duration.js';
 import { peakHoursWidget, isPeakTime, getMinutesToTransition } from '../widgets/peak-hours.js';
+import { tagStatusWidget } from '../widgets/tag-status.js';
 import * as codexClient from '../utils/codex-client.js';
 import * as zaiClient from '../utils/zai-api-client.js';
 import * as historyParser from '../utils/history-parser.js';
@@ -1455,6 +1457,152 @@ describe('widgets', () => {
 
       expect(result).toContain('+156');
       expect(result).toContain('-23');
+    });
+  });
+
+  describe('tagStatusWidget', () => {
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    // Each test uses a unique cwd to bypass the 30s TTL cache
+    let testCwd = 0;
+    function tagCtx(config: Partial<WidgetContext['config']> = {}): WidgetContext {
+      testCwd++;
+      return {
+        stdin: createStdin({ workspace: { current_dir: `/test/tag-status-${testCwd}` } }),
+        config: { ...MOCK_CONFIG, ...config },
+        translations: MOCK_TRANSLATIONS,
+        rateLimits: null,
+      };
+    }
+
+    it('should have correct id and name', () => {
+      expect(tagStatusWidget.id).toBe('tagStatus');
+      expect(tagStatusWidget.name).toBe('Tag Status');
+    });
+
+    it('should resolve default v* pattern when tagPatterns unset', async () => {
+      vi.spyOn(gitUtils, 'execGit').mockImplementation(async (args: string[]) => {
+        if (args[0] === 'describe') return 'v1.25.1\n';
+        if (args[0] === 'rev-list') return '0\n';
+        return '';
+      });
+
+      const data = await tagStatusWidget.getData(tagCtx());
+
+      expect(data).not.toBeNull();
+      expect(data?.tags).toEqual([{ name: 'v1.25.1', count: 0 }]);
+    });
+
+    it('should resolve multiple patterns and preserve order', async () => {
+      vi.spyOn(gitUtils, 'execGit').mockImplementation(async (args: string[]) => {
+        const matchIdx = args.indexOf('--match');
+        const pattern = matchIdx >= 0 ? args[matchIdx + 1] : null;
+        if (args[0] === 'describe') {
+          if (pattern === 'v*') return 'v1.25.1\n';
+          if (pattern === 'sync-*') return 'sync-handbook\n';
+          return '';
+        }
+        if (args[0] === 'rev-list') {
+          const spec = args[2];
+          if (spec?.startsWith('v1.25.1')) return '0\n';
+          if (spec?.startsWith('sync-handbook')) return '12\n';
+        }
+        return '';
+      });
+
+      const data = await tagStatusWidget.getData(
+        tagCtx({ tagPatterns: ['v*', 'sync-*'] }),
+      );
+
+      expect(data?.tags).toEqual([
+        { name: 'v1.25.1', count: 0 },
+        { name: 'sync-handbook', count: 12 },
+      ]);
+    });
+
+    it('should skip patterns that do not match any tag', async () => {
+      vi.spyOn(gitUtils, 'execGit').mockImplementation(async (args: string[]) => {
+        const matchIdx = args.indexOf('--match');
+        const pattern = matchIdx >= 0 ? args[matchIdx + 1] : null;
+        if (args[0] === 'describe') {
+          if (pattern === 'v*') return 'v1.25.1\n';
+          throw new Error('no matching tags');
+        }
+        if (args[0] === 'rev-list') return '3\n';
+        return '';
+      });
+
+      const data = await tagStatusWidget.getData(
+        tagCtx({ tagPatterns: ['v*', 'nonexistent-*'] }),
+      );
+
+      expect(data?.tags).toEqual([{ name: 'v1.25.1', count: 3 }]);
+    });
+
+    it('should return null when all patterns fail to match', async () => {
+      vi.spyOn(gitUtils, 'execGit').mockRejectedValue(new Error('no matching tags'));
+
+      const data = await tagStatusWidget.getData(
+        tagCtx({ tagPatterns: ['nope-*'] }),
+      );
+
+      expect(data).toBeNull();
+    });
+
+    it('should return null when tagPatterns is explicitly empty', async () => {
+      const spy = vi.spyOn(gitUtils, 'execGit');
+
+      const data = await tagStatusWidget.getData(
+        tagCtx({ tagPatterns: [] }),
+      );
+
+      expect(data).toBeNull();
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should return null when cwd is missing', async () => {
+      const ctx: WidgetContext = {
+        stdin: createStdin({ workspace: { current_dir: '' } }),
+        config: MOCK_CONFIG,
+        translations: MOCK_TRANSLATIONS,
+        rateLimits: null,
+      };
+
+      const data = await tagStatusWidget.getData(ctx);
+      expect(data).toBeNull();
+    });
+
+    it('should omit +N when count is 0', () => {
+      const ctx = createContext();
+      const result = tagStatusWidget.render({ tags: [{ name: 'v1.25.1', count: 0 }] }, ctx);
+
+      expect(result).toContain('v1.25.1');
+      expect(result).not.toContain('+0');
+    });
+
+    it('should render +N when count is positive', () => {
+      const ctx = createContext();
+      const result = tagStatusWidget.render(
+        { tags: [{ name: 'sync-handbook', count: 12 }] },
+        ctx,
+      );
+
+      expect(result).toContain('sync-handbook');
+      expect(result).toContain('+12');
+    });
+
+    it('should render multiple tags separated by space', () => {
+      const ctx = createContext();
+      const result = tagStatusWidget.render(
+        { tags: [{ name: 'v1.25.1', count: 0 }, { name: 'sync-handbook', count: 3 }] },
+        ctx,
+      );
+
+      expect(result).toContain('v1.25.1');
+      expect(result).toContain('sync-handbook');
+      expect(result).toContain('+3');
     });
   });
 

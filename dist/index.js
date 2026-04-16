@@ -56,7 +56,8 @@ var PRESET_CHAR_MAP = {
   "?": "lastPrompt",
   m: "vimMode",
   a: "apiDuration",
-  p: "peakHours"
+  p: "peakHours",
+  t: "tagStatus"
 };
 function parsePreset(preset) {
   return preset.split("|").map(
@@ -3645,6 +3646,60 @@ var peakHoursWidget = {
   }
 };
 
+// scripts/widgets/tag-status.ts
+var TAG_CACHE_TTL_MS = 3e4;
+var tagCache = null;
+async function resolveTag(pattern, cwd) {
+  try {
+    const described = (await execGit(
+      ["describe", "--tags", "--abbrev=0", "--match", pattern, "HEAD"],
+      cwd,
+      500
+    )).trim();
+    if (!described)
+      return null;
+    const countStr = (await execGit(["rev-list", "--count", `${described}..HEAD`], cwd, 500)).trim();
+    const count = parseInt(countStr, 10);
+    return { name: described, count: Number.isFinite(count) ? count : 0 };
+  } catch {
+    return null;
+  }
+}
+var tagStatusWidget = {
+  id: "tagStatus",
+  name: "Tag Status",
+  async getData(ctx) {
+    const cwd = ctx.stdin.workspace?.current_dir;
+    if (!cwd)
+      return null;
+    const patterns = ctx.config.tagPatterns ?? ["v*"];
+    if (patterns.length === 0)
+      return null;
+    const key = patterns.join("|");
+    if (tagCache?.cwd === cwd && tagCache.key === key && Date.now() - tagCache.timestamp < TAG_CACHE_TTL_MS) {
+      return tagCache.data;
+    }
+    const resolved = await Promise.all(patterns.map((p) => resolveTag(p, cwd)));
+    const tags = resolved.filter(
+      (r) => r !== null
+    );
+    const data = tags.length > 0 ? { tags } : null;
+    tagCache = { cwd, key, data, timestamp: Date.now() };
+    return data;
+  },
+  render(data, _ctx) {
+    const theme = getTheme();
+    const icon = colorize("\u{1F3F7}", theme.info);
+    const parts = data.tags.map(({ name, count }) => {
+      const nameColored = colorize(name, theme.branch);
+      if (count === 0)
+        return nameColored;
+      return `${nameColored}${colorize(`+${count}`, theme.warning)}`;
+    });
+    return `${icon} ${parts.join(" ")}`;
+  }
+};
+
 // scripts/widgets/index.ts
 var widgetRegistry = /* @__PURE__ */ new Map([
   ["model", modelWidget],
@@ -3681,7 +3736,8 @@ var widgetRegistry = /* @__PURE__ */ new Map([
   ["lastPrompt", lastPromptWidget],
   ["vimMode", vimModeWidget],
   ["apiDuration", apiDurationWidget],
-  ["peakHours", peakHoursWidget]
+  ["peakHours", peakHoursWidget],
+  ["tagStatus", tagStatusWidget]
 ]);
 function getWidget(id) {
   return widgetRegistry.get(id);
