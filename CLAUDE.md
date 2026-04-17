@@ -127,6 +127,9 @@ interface Widget<T extends WidgetData> {
 |-----------|-------------|-------------|
 | `model` | stdin + settings | Model name with emoji, effort level for Opus/Sonnet (X/H/M/L), fast mode for Opus (↯) |
 | `context` | stdin | Progress bar, %, tokens |
+| `contextBar` | stdin | Progress bar only (sub-widget of `context`) |
+| `contextPercentage` | stdin | Percentage only (sub-widget of `context`) |
+| `contextUsage` | stdin | Token count only, e.g. `42K/200K` (sub-widget of `context`) |
 | `cost` | stdin | Session cost |
 | `rateLimit5h` | API | 5-hour rate limit |
 | `rateLimit7d` | API | 7-day rate limit (Pro/Max) |
@@ -212,6 +215,8 @@ Quick widget layout via single-character shorthand. Set `"preset"` in config, us
 | `@` | todayCost | `?` | lastPrompt |
 | `m` | vimMode | `a` | apiDuration |
 | `p` | peakHours | `t` | tagStatus |
+| `b` | contextBar | `%` | contextPercentage |
+| `#` | contextUsage | | |
 
 ### Theme System
 
