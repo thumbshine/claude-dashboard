@@ -3,7 +3,7 @@
 > Fork of [uppinote20/claude-dashboard](https://github.com/uppinote20/claude-dashboard) for the Bokdori / Dori Teamkit.
 > Upstream remains the source of truth for core features; this document tracks every divergence so upstream syncs stay predictable.
 
-**Version marker**: `package.json` uses `<upstream_version>-teamkit.<N>` (e.g. `1.26.0-teamkit.3`). Bump `teamkit.N` on every fork-side change; reset to `.1` after a successful upstream sync.
+**Version marker**: `package.json` uses `<upstream_version>-teamkit.<N>` (e.g. `1.26.0-teamkit.4`). Bump `teamkit.N` on every fork-side change; reset to `.1` after a successful upstream sync.
 
 ---
 
@@ -38,15 +38,28 @@
 - `WidgetId` union: added `'teamkit'`, `'agentMode'`.
 - `DisplayMode` union: added `'teamkit'`.
 - `DISPLAY_PRESETS`:
-  - New `teamkit` preset: `[['teamkit', 'model', 'agentMode', 'agentStatus']]` (1 line, 4 slots).
+  - `teamkit` preset (redefined as of `1.26.0-teamkit.4`): 2 lines, mirrors `normal` preset structure but retains fork-exclusive slots.
+    ```typescript
+    teamkit: [
+      ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
+      ['projectInfo', 'sessionDuration', 'burnRate', 'agentMode', 'agentStatus', 'todoProgress'],
+    ],
+    ```
+    - Previous shape (`1.26.0-teamkit.1..3`) was a single line of 4 widgets (`teamkit, model, agentMode, agentStatus`), which hid context/cost/rate-limit usage. The revamp keeps `agentMode`/`agentStatus` slots while exposing usage data without requiring users to switch to `normal`.
   - Injected `'teamkit'` as the first slot of `compact` / `normal` / `detailed` presets so the author label is visible in every mode (hidden automatically in non-teamkit projects).
-- `DEFAULT_CONFIG.displayMode`: `'compact'` → `'teamkit'` (fork-side default).
+- `DEFAULT_CONFIG.displayMode`: `'compact'` → `'teamkit'` (fork-side default, unchanged since `.1`).
 - Added `TeamkitData`, `AgentModeData` interfaces; extended `WidgetData` union.
 
 ### 2.3 `scripts/widgets/index.ts`
 - `import` + `Map` entries for `teamkitWidget`, `agentModeWidget`.
 
-### 2.4 `package.json`
+### 2.4 `scripts/widgets/todo-progress.ts` (as of `1.26.0-teamkit.4`)
+- **Change scope**: `getData()` only. `render()` logic untouched — only the empty-state branch removed.
+- **Before**: returned `{ total: 0, completed: 0 }` when no TodoWrite/TaskCreate calls existed, and `render()` emitted a dim placeholder `Tasks: -`.
+- **After**: returns `null` in the same condition, letting the orchestrator hide the widget entirely (graceful hide).
+- **Rationale**: the placeholder added visual noise with no information value; empty-state hiding matches the convention used by other fork widgets (`teamkit`, `agentMode`, `agentStatus`).
+
+### 2.5 `package.json`
 - `version`: `1.26.0` → `1.26.0-teamkit.N` (fork marker).
 - No dependency changes.
 
@@ -70,7 +83,8 @@ npm test                                          # sanity check
 | File | Why it conflicts |
 |------|------------------|
 | `scripts/widgets/model.ts` | Upstream may refactor `render()` — preserve our `data.id` + no-effort output. |
-| `scripts/types.ts` | Upstream adds new `WidgetId` / presets — merge our additions (`teamkit`, `agentMode`, `teamkit` preset, `DISPLAY_PRESETS.compact/normal/detailed` first slot). |
+| `scripts/widgets/todo-progress.ts` | Upstream may touch the empty-state branch — preserve the null-return in `getData()` (see §2.4). |
+| `scripts/types.ts` | Upstream adds new `WidgetId` / presets — merge our additions (`teamkit`, `agentMode`, 2-line `teamkit` preset, `DISPLAY_PRESETS.compact/normal/detailed` first slot). |
 | `scripts/widgets/index.ts` | Upstream adds widget registrations — keep ours at the end of the Map. |
 | `package.json` | Version conflict — rebase our `-teamkit.N` suffix onto the new upstream base. |
 
@@ -92,13 +106,16 @@ Run manually before committing fork-side changes:
 echo '{...}' | node dist/index.js
 ```
 
-| # | stdin shape | Expected output (teamkit cwd, Opus) |
-|---|-------------|-------------------------------------|
-| 1 | `{ model: { id: "claude-opus-4-7" } }` | `🧰 sarah │ ◆ claude-opus-4-7` |
-| 2 | + `agent: { name: "nv:pm" }` | `🧰 sarah │ ◆ claude-opus-4-7 │ 👤 nv:pm` |
-| 3 | + `agent_type: "Explore"` | `🧰 sarah │ ◆ claude-opus-4-7 │ 🤖 Explore` |
-| 4 | both `agent.name` + `agent_type` | `🧰 sarah │ ◆ claude-opus-4-7 │ 👤 nv:pm · 🤖 Explore` |
-| 5 | non-teamkit cwd | `◆ claude-opus-4-7` (🧰 hidden) |
+Fork baseline: `1.26.0-teamkit.4` — `teamkit` preset now renders 2 lines. Expected outputs below assume a populated `context_window` + `cost` stdin shape.
+
+| # | stdin shape | Row 1 (usage line) | Row 2 (session line) |
+|---|-------------|--------------------|----------------------|
+| 1 | baseline (`model.id`, context, cost only) | `🧰 sarah │ ◆ claude-opus-4-7 │ <context bar> │ $0.50` | `📁 <project> │ ⏱ <duration>` |
+| 2 | + `agent: { name: "nv:pm" }` | same as 1 | `📁 <project> │ ⏱ <duration> │ 👤 nv:pm` |
+| 3 | + `agent_type: "Explore"` | same as 1 | `📁 <project> │ ⏱ <duration> │ 🤖 Explore` |
+| 4 | both `agent.name` + `agent_type` | same as 1 | `📁 <project> │ ⏱ <duration> │ 👤 nv:pm · 🤖 Explore` |
+| 5 | non-teamkit cwd | `◆ claude-opus-4-7 │ <context bar> │ $0.50` (🧰 hidden) | `📁 <project> │ ⏱ <duration>` |
+| 6 | transcript with `TodoWrite`/`TaskCreate` | (row 1 unchanged) | row 2 appends `✓ <task> [N/M]` — otherwise hidden (§2.4) |
 
 ---
 
@@ -117,4 +134,4 @@ See `teamkit/README.md` → dashboard section for user-facing docs.
 
 ---
 
-*Last updated: 2026-04-21 (fork baseline 1.26.0-teamkit.3)*
+*Last updated: 2026-04-21 (fork baseline 1.26.0-teamkit.4 — teamkit preset expanded to 2 rows; todoProgress hides when empty)*
