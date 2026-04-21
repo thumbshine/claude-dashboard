@@ -116,6 +116,9 @@ Fork baseline: `1.26.0-teamkit.4` — `teamkit` preset now renders 2 lines. Expe
 | 4 | both `agent.name` + `agent_type` | same as 1 | `📁 <project> │ ⏱ <duration> │ 👤 nv:pm · 🤖 Explore` |
 | 5 | non-teamkit cwd | `◆ claude-opus-4-7 │ <context bar> │ $0.50` (🧰 hidden) | `📁 <project> │ ⏱ <duration>` |
 | 6 | transcript with `TodoWrite`/`TaskCreate` | (row 1 unchanged) | row 2 appends `✓ <task> [N/M]` — otherwise hidden (§2.4) |
+| 7 | `workspace.current_dir` inside the submodule (e.g. `<project>/teamkit/tools/dashboard`) | (row 1 unchanged) | `📁 <project> (teamkit/tools/dashboard) (main) …` — `projectInfo` renders the submodule's own git branch because it shells out to `git` at `current_dir`. This is **upstream** widget behavior, not a fork bug. |
+
+> Case 7 surfaced during 2026-04-21 development when an agent `cd`'d into the submodule while iterating on the fork — Claude Code propagates the updated `cwd` into the next statusline render. If you see `(main)` instead of the parent branch, `cd` back to the project root. Document the expectation rather than patching the widget — `projectInfo` correctly reflecting the current git context is the intended design.
 
 ---
 
