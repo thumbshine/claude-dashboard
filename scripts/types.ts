@@ -139,30 +139,35 @@ export type WidgetId =
   | 'vimMode'
   | 'apiDuration'
   | 'peakHours'
-  | 'tagStatus';
+  | 'tagStatus'
+  | 'teamkit';
 
 /**
  * Display mode for status line output
  */
-export type DisplayMode = 'compact' | 'normal' | 'detailed' | 'custom';
+export type DisplayMode = 'teamkit' | 'compact' | 'normal' | 'detailed' | 'custom';
 
 /**
  * Preset configurations for each display mode
  *
+ * teamkit: Teamkit identity + model only (default) - 1 line
  * compact: Essential metrics - 1 line
  * normal: Essential + project/session/todo - 2 lines
  * detailed: Normal + config/tools/agents (additive) - 6 lines
  */
 export const DISPLAY_PRESETS: Record<Exclude<DisplayMode, 'custom'>, WidgetId[][]> = {
+  teamkit: [
+    ['teamkit', 'model'],
+  ],
   compact: [
-    ['model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
+    ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
   ],
   normal: [
-    ['model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
+    ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
     ['projectInfo', 'sessionId', 'sessionDuration', 'burnRate', 'todoProgress'],
   ],
   detailed: [
-    ['model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
+    ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
     ['projectInfo', 'sessionName', 'sessionId', 'sessionDuration', 'burnRate', 'tokenSpeed', 'depletionTime', 'todoProgress'],
     ['configCounts', 'toolActivity', 'agentStatus', 'cacheHit', 'performance'],
     ['tokenBreakdown', 'forecast', 'budget', 'todayCost'],
@@ -282,7 +287,7 @@ export function parsePreset(preset: string): WidgetId[][] {
 export const DEFAULT_CONFIG: Config = {
   language: 'auto',
   plan: 'max',
-  displayMode: 'compact',
+  displayMode: 'teamkit',
   cache: {
     ttlSeconds: 300,
   },
@@ -446,6 +451,13 @@ export interface ProjectInfoData {
  */
 export interface TagStatusData {
   tags: Array<{ name: string; count: number }>;
+}
+
+/**
+ * Teamkit identity data - author label shown when a teamkit project is active.
+ */
+export interface TeamkitData {
+  author: string;
 }
 
 export interface ConfigCountsData {
@@ -775,7 +787,8 @@ export type WidgetData =
   | VimModeData
   | ApiDurationData
   | PeakHoursData
-  | TagStatusData;
+  | TagStatusData
+  | TeamkitData;
 
 /**
  * Transcript entry from JSONL file

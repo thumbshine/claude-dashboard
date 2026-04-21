@@ -2,20 +2,23 @@
 
 // scripts/statusline.ts
 import { readFile as readFile9, stat as stat10 } from "fs/promises";
-import { join as join6 } from "path";
+import { join as join7 } from "path";
 import { homedir as homedir6 } from "os";
 
 // scripts/types.ts
 var DISPLAY_PRESETS = {
+  teamkit: [
+    ["teamkit", "model"]
+  ],
   compact: [
-    ["model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"]
+    ["teamkit", "model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"]
   ],
   normal: [
-    ["model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"],
+    ["teamkit", "model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"],
     ["projectInfo", "sessionId", "sessionDuration", "burnRate", "todoProgress"]
   ],
   detailed: [
-    ["model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"],
+    ["teamkit", "model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"],
     ["projectInfo", "sessionName", "sessionId", "sessionDuration", "burnRate", "tokenSpeed", "depletionTime", "todoProgress"],
     ["configCounts", "toolActivity", "agentStatus", "cacheHit", "performance"],
     ["tokenBreakdown", "forecast", "budget", "todayCost"],
@@ -70,7 +73,7 @@ function parsePreset(preset) {
 var DEFAULT_CONFIG = {
   language: "auto",
   plan: "max",
-  displayMode: "compact",
+  displayMode: "teamkit",
   cache: {
     ttlSeconds: 300
   }
@@ -538,7 +541,7 @@ function hashToken(token) {
 }
 
 // scripts/version.ts
-var VERSION = "1.26.0";
+var VERSION = "1.26.0-teamkit.1";
 
 // scripts/utils/debug.ts
 var DEBUG = process.env.DEBUG === "claude-dashboard" || process.env.DEBUG === "1" || process.env.DEBUG === "true";
@@ -3763,6 +3766,36 @@ var tagStatusWidget = {
   }
 };
 
+// scripts/widgets/teamkit.ts
+import { existsSync, readFileSync } from "fs";
+import { join as join6 } from "path";
+var AUTHOR_REGEX = /^\s*-\s*author\s*:\s*(\S+)/im;
+var teamkitWidget = {
+  id: "teamkit",
+  name: "Teamkit",
+  async getData(ctx) {
+    const root = ctx.stdin.workspace?.project_dir ?? ctx.stdin.workspace?.current_dir;
+    if (!root)
+      return null;
+    if (!existsSync(join6(root, "teamkit", "sprint-status.yaml")))
+      return null;
+    const localPath = join6(root, "CLAUDE.local.md");
+    if (!existsSync(localPath))
+      return null;
+    try {
+      const match = readFileSync(localPath, "utf-8").match(AUTHOR_REGEX);
+      if (!match)
+        return null;
+      return { author: match[1] };
+    } catch {
+      return null;
+    }
+  },
+  render(data) {
+    return `\u{1F9F0} ${data.author}`;
+  }
+};
+
 // scripts/widgets/index.ts
 var widgetRegistry = /* @__PURE__ */ new Map([
   ["model", modelWidget],
@@ -3803,7 +3836,8 @@ var widgetRegistry = /* @__PURE__ */ new Map([
   ["vimMode", vimModeWidget],
   ["apiDuration", apiDurationWidget],
   ["peakHours", peakHoursWidget],
-  ["tagStatus", tagStatusWidget]
+  ["tagStatus", tagStatusWidget],
+  ["teamkit", teamkitWidget]
 ]);
 function getWidget(id) {
   return widgetRegistry.get(id);
@@ -3853,7 +3887,7 @@ async function formatOutput(ctx) {
 }
 
 // scripts/statusline.ts
-var CONFIG_PATH = join6(homedir6(), ".claude", "claude-dashboard.local.json");
+var CONFIG_PATH = join7(homedir6(), ".claude", "claude-dashboard.local.json");
 var configCache = null;
 async function readStdin() {
   try {

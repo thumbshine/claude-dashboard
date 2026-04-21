@@ -53,6 +53,7 @@ import { vimModeWidget } from './vim-mode.js';
 import { apiDurationWidget } from './api-duration.js';
 import { peakHoursWidget } from './peak-hours.js';
 import { tagStatusWidget } from './tag-status.js';
+import { teamkitWidget } from './teamkit.js';
 
 /**
  * Widget registry - maps widget IDs to widget implementations
@@ -97,6 +98,7 @@ const widgetRegistry = new Map<WidgetId, Widget>([
   ['apiDuration', apiDurationWidget],
   ['peakHours', peakHoursWidget],
   ['tagStatus', tagStatusWidget],
+  ['teamkit', teamkitWidget],
 ] as [WidgetId, Widget][]);
 
 /**
