@@ -54,6 +54,7 @@ import { apiDurationWidget } from './api-duration.js';
 import { peakHoursWidget } from './peak-hours.js';
 import { tagStatusWidget } from './tag-status.js';
 import { teamkitWidget } from './teamkit.js';
+import { agentModeWidget } from './agent-mode.js';
 
 /**
  * Widget registry - maps widget IDs to widget implementations
@@ -99,6 +100,7 @@ const widgetRegistry = new Map<WidgetId, Widget>([
   ['peakHours', peakHoursWidget],
   ['tagStatus', tagStatusWidget],
   ['teamkit', teamkitWidget],
+  ['agentMode', agentModeWidget],
 ] as [WidgetId, Widget][]);
 
 /**

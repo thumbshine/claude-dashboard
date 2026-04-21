@@ -8,7 +8,7 @@ import { homedir as homedir6 } from "os";
 // scripts/types.ts
 var DISPLAY_PRESETS = {
   teamkit: [
-    ["teamkit", "model"]
+    ["teamkit", "model", "agentMode", "agentStatus"]
   ],
   compact: [
     ["teamkit", "model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"]
@@ -541,7 +541,7 @@ function hashToken(token) {
 }
 
 // scripts/version.ts
-var VERSION = "1.26.0-teamkit.1";
+var VERSION = "1.26.0-teamkit.2";
 
 // scripts/utils/debug.ts
 var DEBUG = process.env.DEBUG === "claude-dashboard" || process.env.DEBUG === "1" || process.env.DEBUG === "true";
@@ -3796,6 +3796,30 @@ var teamkitWidget = {
   }
 };
 
+// scripts/widgets/agent-mode.ts
+var agentModeWidget = {
+  id: "agentMode",
+  name: "Agent Mode",
+  async getData(ctx) {
+    const agentName = ctx.stdin.agent?.name?.trim();
+    const agentType = ctx.stdin.agent_type?.trim();
+    if (!agentName && !agentType)
+      return null;
+    return {
+      agentName: agentName || void 0,
+      agentType: agentType || void 0
+    };
+  },
+  render(data) {
+    const parts = [];
+    if (data.agentName)
+      parts.push(`\u{1F464} ${data.agentName}`);
+    if (data.agentType)
+      parts.push(`\u{1F916} ${data.agentType}`);
+    return parts.join(" \xB7 ");
+  }
+};
+
 // scripts/widgets/index.ts
 var widgetRegistry = /* @__PURE__ */ new Map([
   ["model", modelWidget],
@@ -3837,7 +3861,8 @@ var widgetRegistry = /* @__PURE__ */ new Map([
   ["apiDuration", apiDurationWidget],
   ["peakHours", peakHoursWidget],
   ["tagStatus", tagStatusWidget],
-  ["teamkit", teamkitWidget]
+  ["teamkit", teamkitWidget],
+  ["agentMode", agentModeWidget]
 ]);
 function getWidget(id) {
   return widgetRegistry.get(id);

@@ -140,7 +140,8 @@ export type WidgetId =
   | 'apiDuration'
   | 'peakHours'
   | 'tagStatus'
-  | 'teamkit';
+  | 'teamkit'
+  | 'agentMode';
 
 /**
  * Display mode for status line output
@@ -157,7 +158,7 @@ export type DisplayMode = 'teamkit' | 'compact' | 'normal' | 'detailed' | 'custo
  */
 export const DISPLAY_PRESETS: Record<Exclude<DisplayMode, 'custom'>, WidgetId[][]> = {
   teamkit: [
-    ['teamkit', 'model'],
+    ['teamkit', 'model', 'agentMode', 'agentStatus'],
   ],
   compact: [
     ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
@@ -458,6 +459,16 @@ export interface TagStatusData {
  */
 export interface TeamkitData {
   author: string;
+}
+
+/**
+ * Agent mode data - active custom agent (stdin.agent.name) and/or
+ * current subagent type (stdin.agent_type). At least one is non-empty
+ * when getData returns this object; both may be set simultaneously.
+ */
+export interface AgentModeData {
+  agentName?: string;
+  agentType?: string;
 }
 
 export interface ConfigCountsData {
@@ -788,7 +799,8 @@ export type WidgetData =
   | ApiDurationData
   | PeakHoursData
   | TagStatusData
-  | TeamkitData;
+  | TeamkitData
+  | AgentModeData;
 
 /**
  * Transcript entry from JSONL file
