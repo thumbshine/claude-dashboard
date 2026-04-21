@@ -8,7 +8,8 @@ import { homedir as homedir6 } from "os";
 // scripts/types.ts
 var DISPLAY_PRESETS = {
   teamkit: [
-    ["teamkit", "model", "agentMode", "agentStatus"]
+    ["teamkit", "model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"],
+    ["projectInfo", "sessionDuration", "burnRate", "agentMode", "agentStatus", "todoProgress"]
   ],
   compact: [
     ["teamkit", "model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"]
@@ -541,7 +542,7 @@ function hashToken(token) {
 }
 
 // scripts/version.ts
-var VERSION = "1.26.0-teamkit.3";
+var VERSION = "1.26.0-teamkit.4";
 
 // scripts/utils/debug.ts
 var DEBUG = process.env.DEBUG === "claude-dashboard" || process.env.DEBUG === "1" || process.env.DEBUG === "true";
