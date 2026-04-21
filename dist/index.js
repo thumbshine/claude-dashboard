@@ -541,7 +541,7 @@ function hashToken(token) {
 }
 
 // scripts/version.ts
-var VERSION = "1.26.0-teamkit.2";
+var VERSION = "1.26.0-teamkit.3";
 
 // scripts/utils/debug.ts
 var DEBUG = process.env.DEBUG === "claude-dashboard" || process.env.DEBUG === "1" || process.env.DEBUG === "true";
@@ -971,83 +971,6 @@ import { readFile as readFile3, stat as stat3 } from "fs/promises";
 import { join as join2 } from "path";
 import { homedir as homedir2 } from "os";
 
-// scripts/utils/formatters.ts
-function formatTokens(tokens) {
-  if (tokens >= 1e6) {
-    const value = tokens / 1e6;
-    return value >= 10 ? `${Math.round(value)}M` : `${value.toFixed(1)}M`;
-  }
-  if (tokens >= 1e3) {
-    const value = tokens / 1e3;
-    return value >= 10 ? `${Math.round(value)}K` : `${value.toFixed(1)}K`;
-  }
-  return String(tokens);
-}
-function formatCost(cost) {
-  return `$${cost.toFixed(2)}`;
-}
-function formatTimeRemaining(resetAt, t) {
-  const reset = typeof resetAt === "string" ? new Date(resetAt) : resetAt;
-  const now = /* @__PURE__ */ new Date();
-  const diffMs = reset.getTime() - now.getTime();
-  if (diffMs <= 0)
-    return `0${t.time.minutes}`;
-  const totalMinutes = Math.floor(diffMs / (1e3 * 60));
-  const totalHours = Math.floor(totalMinutes / 60);
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
-  const minutes = totalMinutes % 60;
-  if (days > 0) {
-    return `${days}${t.time.days}${hours}${t.time.hours}`;
-  }
-  if (hours > 0) {
-    return `${hours}${t.time.hours}${minutes}${t.time.minutes}`;
-  }
-  return `${minutes}${t.time.minutes}`;
-}
-function shortenModelName(displayName) {
-  const lower = displayName.toLowerCase();
-  if (lower.includes("opus"))
-    return "Opus";
-  if (lower.includes("sonnet"))
-    return "Sonnet";
-  if (lower.includes("haiku"))
-    return "Haiku";
-  const parts = displayName.split(/\s+/);
-  if (parts.length > 1 && parts[0].toLowerCase() === "claude") {
-    return parts[1];
-  }
-  return displayName;
-}
-function calculatePercent(current, total) {
-  if (total <= 0)
-    return 0;
-  return Math.min(100, Math.round(current / total * 100));
-}
-function formatDuration(ms, t) {
-  if (ms <= 0)
-    return `0${t.minutes}`;
-  const totalMinutes = Math.floor(ms / (1e3 * 60));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours > 0 && minutes > 0) {
-    return `${hours}${t.hours}${minutes}${t.minutes}`;
-  }
-  if (hours > 0) {
-    return `${hours}${t.hours}`;
-  }
-  return `${minutes}${t.minutes}`;
-}
-function truncate(str, maxLen) {
-  return str.length <= maxLen ? str : str.slice(0, maxLen) + "\u2026";
-}
-function clampPercent(value) {
-  return Math.min(100, Math.max(0, Math.round(value)));
-}
-function osc8Link(url, text) {
-  return `\x1B]8;;${url}\x1B\\${text}\x1B]8;;\x1B\\`;
-}
-
 // scripts/utils/provider.ts
 function detectProvider() {
   const baseUrl = process.env.ANTHROPIC_BASE_URL || "";
@@ -1133,14 +1056,75 @@ var modelWidget = {
     };
   },
   render(data) {
-    const shortName = shortenModelName(data.displayName);
     const icon = isZaiProvider() ? "\u{1F7E0}" : "\u25C6";
-    const supportsEffort = shortName === "Opus" || shortName === "Sonnet";
-    const effortSuffix = supportsEffort ? `(${data.effortLevel[0].toUpperCase()})` : "";
-    const fastIndicator = shortName === "Opus" && data.fastMode ? " \u21AF" : "";
-    return `${getTheme().model}${icon} ${shortName}${effortSuffix}${fastIndicator}${RESET}`;
+    const name = data.id || data.displayName || "-";
+    const fastIndicator = data.id.includes("opus") && data.fastMode ? " \u21AF" : "";
+    return `${getTheme().model}${icon} ${name}${fastIndicator}${RESET}`;
   }
 };
+
+// scripts/utils/formatters.ts
+function formatTokens(tokens) {
+  if (tokens >= 1e6) {
+    const value = tokens / 1e6;
+    return value >= 10 ? `${Math.round(value)}M` : `${value.toFixed(1)}M`;
+  }
+  if (tokens >= 1e3) {
+    const value = tokens / 1e3;
+    return value >= 10 ? `${Math.round(value)}K` : `${value.toFixed(1)}K`;
+  }
+  return String(tokens);
+}
+function formatCost(cost) {
+  return `$${cost.toFixed(2)}`;
+}
+function formatTimeRemaining(resetAt, t) {
+  const reset = typeof resetAt === "string" ? new Date(resetAt) : resetAt;
+  const now = /* @__PURE__ */ new Date();
+  const diffMs = reset.getTime() - now.getTime();
+  if (diffMs <= 0)
+    return `0${t.time.minutes}`;
+  const totalMinutes = Math.floor(diffMs / (1e3 * 60));
+  const totalHours = Math.floor(totalMinutes / 60);
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  const minutes = totalMinutes % 60;
+  if (days > 0) {
+    return `${days}${t.time.days}${hours}${t.time.hours}`;
+  }
+  if (hours > 0) {
+    return `${hours}${t.time.hours}${minutes}${t.time.minutes}`;
+  }
+  return `${minutes}${t.time.minutes}`;
+}
+function calculatePercent(current, total) {
+  if (total <= 0)
+    return 0;
+  return Math.min(100, Math.round(current / total * 100));
+}
+function formatDuration(ms, t) {
+  if (ms <= 0)
+    return `0${t.minutes}`;
+  const totalMinutes = Math.floor(ms / (1e3 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0 && minutes > 0) {
+    return `${hours}${t.hours}${minutes}${t.minutes}`;
+  }
+  if (hours > 0) {
+    return `${hours}${t.hours}`;
+  }
+  return `${minutes}${t.minutes}`;
+}
+function truncate(str, maxLen) {
+  return str.length <= maxLen ? str : str.slice(0, maxLen) + "\u2026";
+}
+function clampPercent(value) {
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+function osc8Link(url, text) {
+  return `\x1B]8;;${url}\x1B\\${text}\x1B]8;;\x1B\\`;
+}
 
 // scripts/utils/progress-bar.ts
 var DEFAULT_PROGRESS_BAR_CONFIG = {

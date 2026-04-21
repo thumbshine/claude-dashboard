@@ -1,9 +1,11 @@
 /**
- * Model widget - displays current Claude model name with effort level and fast mode
- * @handbook 2.1-naming-conventions
+ * Model widget - displays current Claude model id (teamkit fork).
  *
- * Effort level: Shown for Opus and Sonnet (H/M/L), hidden for Haiku
- * Fast mode: Opus 4.6 exclusive feature, indicated by ↯ symbol
+ * Diverges from upstream: outputs the canonical model id (e.g.
+ * `claude-opus-4-7`) instead of the abbreviated `display_name`, and
+ * intentionally omits the effort level badge — sarah prefers the raw id,
+ * no `(X)` suffix. Fast mode (↯) is kept for forward-compat (no-op on 4.7+).
+ *
  * @handbook 3.3-widget-data-sources
  * @tested scripts/__tests__/widgets.test.ts
  */
@@ -14,7 +16,6 @@ import { homedir } from 'os';
 import type { Widget } from './base.js';
 import type { WidgetContext, ModelData, EffortLevel } from '../types.js';
 import { RESET, getTheme } from '../utils/colors.js';
-import { shortenModelName } from '../utils/formatters.js';
 import { isZaiProvider } from '../utils/provider.js';
 
 const EFFORT_LEVELS = new Set<string>(['xhigh', 'high', 'medium', 'low']);
@@ -95,18 +96,10 @@ export const modelWidget: Widget<ModelData> = {
   },
 
   render(data: ModelData): string {
-    const shortName = shortenModelName(data.displayName);
     const icon = isZaiProvider() ? '🟠' : '◆';
+    const name = data.id || data.displayName || '-';
+    const fastIndicator = data.id.includes('opus') && data.fastMode ? ' ↯' : '';
 
-    // Haiku excluded from effort badge
-    const supportsEffort = shortName === 'Opus' || shortName === 'Sonnet';
-    const effortSuffix = supportsEffort
-      ? `(${data.effortLevel[0].toUpperCase()})`
-      : '';
-
-    // Fast mode indicator (Opus 4.6 exclusive)
-    const fastIndicator = shortName === 'Opus' && data.fastMode ? ' ↯' : '';
-
-    return `${getTheme().model}${icon} ${shortName}${effortSuffix}${fastIndicator}${RESET}`;
+    return `${getTheme().model}${icon} ${name}${fastIndicator}${RESET}`;
   },
 };
