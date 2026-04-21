@@ -20,19 +20,15 @@ export const todoProgressWidget: Widget<TodoProgressData> = {
 
     const progress = extractTodoOrTaskProgress(transcript);
 
-    // Return default data if no TodoWrite/TaskCreate calls yet
-    return progress || { total: 0, completed: 0 };
+    // Hide widget entirely when no TodoWrite/TaskCreate calls yet (teamkit fork)
+    if (!progress || progress.total === 0) return null;
+
+    return progress;
   },
 
   render(data: TodoProgressData, ctx: WidgetContext): string {
     const { translations: t } = ctx;
-
-    // Show placeholder when no todos exist
     const theme = getTheme();
-
-    if (data.total === 0) {
-      return colorize(`${t.widgets.todos}: -`, theme.dim);
-    }
 
     const percent = calculatePercent(data.completed, data.total);
     const color = getColorForPercent(100 - percent); // Invert: lower completion = more red

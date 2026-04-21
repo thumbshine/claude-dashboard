@@ -2017,14 +2017,13 @@ var todoProgressWidget = {
     if (!transcript)
       return null;
     const progress = extractTodoOrTaskProgress(transcript);
-    return progress || { total: 0, completed: 0 };
+    if (!progress || progress.total === 0)
+      return null;
+    return progress;
   },
   render(data, ctx) {
     const { translations: t } = ctx;
     const theme = getTheme();
-    if (data.total === 0) {
-      return colorize(`${t.widgets.todos}: -`, theme.dim);
-    }
     const percent = calculatePercent(data.completed, data.total);
     const color = getColorForPercent(100 - percent);
     if (data.current) {
