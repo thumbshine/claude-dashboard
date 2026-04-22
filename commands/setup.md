@@ -16,7 +16,8 @@ Configure the claude-dashboard status line plugin with widget system support.
 ### Direct Mode Arguments
 
 - `$1`: Display mode
-  - `compact` (default): 1 line (model, context, cost, rateLimit5h, rateLimit7d, rateLimit7dSonnet, zaiUsage)
+  - `teamkit` (default, teamkit fork): 4 lines — teamkit identity + model/context/cost/rateLimits on row 1, project/session on row 2, todoProgress/toolActivity on row 3, conditional widgets (slashCommand/agentMode/agentStatus) on row 4 that collapses when idle
+  - `compact`: 1 line (model, context, cost, rateLimit5h, rateLimit7d, rateLimit7dSonnet, zaiUsage)
   - `normal`: 2 lines (+ projectInfo, sessionId, sessionDuration, burnRate, todoProgress)
   - `detailed`: 6 lines (+ sessionName, tokenSpeed, depletionTime, configCounts, toolActivity, agentStatus, cacheHit, performance, tokenBreakdown, forecast, budget, todayCost, codexUsage, geminiUsage, linesChanged, outputStyle, version, peakHours, lastPrompt, vimMode, apiDuration, tagStatus)
   - `custom`: Custom widget configuration (requires `$4`)
@@ -88,7 +89,14 @@ Use AskUserQuestion to ask the user. Batch independent questions into a single A
 
 **Turn 1** — Ask all 4 questions in a single AskUserQuestion call:
 1. Display mode — MUST include `markdown` field on each option for visual preview:
-   - compact (recommended), markdown:
+   - teamkit (recommended — teamkit fork default), markdown:
+     ```
+     🧰 sarah │ ◆ Opus │ ██░░ 80% │ $1.25 │ 5h: 42% │ 7d: 69%
+     📁 project (main ↑3) │ ⏱ 45m │ 🔥 5K/m
+     ✓ 3/5 │ ⚙️ Skill(tk:start), Read(file.ts) (12 done)
+     🎯 /tk:start │ 🤖 Agent: 1          ← hidden when idle
+     ```
+   - compact, markdown:
      ```
      ◆ Opus(X) │ ██░░ 80% │ $1.25 │ 5h: 42% │ 7d: 69%
      ```
@@ -133,12 +141,12 @@ Use the provided arguments directly.
 
 Create `~/.claude/claude-dashboard.local.json`:
 
-**For preset modes (compact/normal/detailed):**
+**For preset modes (teamkit/compact/normal/detailed):**
 ```json
 {
   "language": "$2 or auto",
   "plan": "$3 or max",
-  "displayMode": "$1 or normal",
+  "displayMode": "$1 or teamkit",
   "theme": "selected theme or default",
   "separator": "pipe (default) | space | dot | arrow",
   "disabledWidgets": ["selected widgets to hide, omit if empty"],
@@ -220,6 +228,7 @@ This command:
 /claude-dashboard:setup
 
 # Preset modes
+/claude-dashboard:setup teamkit
 /claude-dashboard:setup normal
 /claude-dashboard:setup compact en pro
 /claude-dashboard:setup detailed ko max
