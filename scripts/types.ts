@@ -159,8 +159,10 @@ export type DisplayMode = 'teamkit' | 'compact' | 'normal' | 'detailed' | 'custo
  */
 export const DISPLAY_PRESETS: Record<Exclude<DisplayMode, 'custom'>, WidgetId[][]> = {
   teamkit: [
-    ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
-    ['projectInfo', 'sessionDuration', 'burnRate', 'slashCommand', 'agentMode', 'agentStatus', 'todoProgress'],
+    ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'zaiUsage'],
+    ['projectInfo', 'sessionDuration', 'burnRate'],
+    ['todoProgress', 'toolActivity'],
+    ['slashCommand', 'agentMode', 'agentStatus'],
   ],
   compact: [
     ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],

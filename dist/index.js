@@ -8,8 +8,10 @@ import { homedir as homedir6 } from "os";
 // scripts/types.ts
 var DISPLAY_PRESETS = {
   teamkit: [
-    ["teamkit", "model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"],
-    ["projectInfo", "sessionDuration", "burnRate", "slashCommand", "agentMode", "agentStatus", "todoProgress"]
+    ["teamkit", "model", "context", "cost", "rateLimit5h", "rateLimit7d", "zaiUsage"],
+    ["projectInfo", "sessionDuration", "burnRate"],
+    ["todoProgress", "toolActivity"],
+    ["slashCommand", "agentMode", "agentStatus"]
   ],
   compact: [
     ["teamkit", "model", "context", "cost", "rateLimit5h", "rateLimit7d", "rateLimit7dSonnet", "zaiUsage"]
