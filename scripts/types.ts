@@ -141,7 +141,8 @@ export type WidgetId =
   | 'peakHours'
   | 'tagStatus'
   | 'teamkit'
-  | 'agentMode';
+  | 'agentMode'
+  | 'slashCommand';
 
 /**
  * Display mode for status line output
@@ -159,7 +160,7 @@ export type DisplayMode = 'teamkit' | 'compact' | 'normal' | 'detailed' | 'custo
 export const DISPLAY_PRESETS: Record<Exclude<DisplayMode, 'custom'>, WidgetId[][]> = {
   teamkit: [
     ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
-    ['projectInfo', 'sessionDuration', 'burnRate', 'agentMode', 'agentStatus', 'todoProgress'],
+    ['projectInfo', 'sessionDuration', 'burnRate', 'slashCommand', 'agentMode', 'agentStatus', 'todoProgress'],
   ],
   compact: [
     ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
@@ -171,7 +172,7 @@ export const DISPLAY_PRESETS: Record<Exclude<DisplayMode, 'custom'>, WidgetId[][
   detailed: [
     ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
     ['projectInfo', 'sessionName', 'sessionId', 'sessionDuration', 'burnRate', 'tokenSpeed', 'depletionTime', 'todoProgress'],
-    ['configCounts', 'toolActivity', 'agentStatus', 'cacheHit', 'performance'],
+    ['configCounts', 'slashCommand', 'toolActivity', 'agentStatus', 'cacheHit', 'performance'],
     ['tokenBreakdown', 'forecast', 'budget', 'todayCost'],
     ['codexUsage', 'geminiUsage', 'linesChanged', 'outputStyle', 'version', 'peakHours'],
     ['lastPrompt', 'vimMode', 'apiDuration', 'tagStatus'],
@@ -502,6 +503,18 @@ export interface TodoProgressData {
 }
 
 /**
+ * Slash command activity - the most recent slash command that started the
+ * current turn, e.g. `/tk:start`. Cleared when the user sends a new text
+ * message without a command tag.
+ */
+export interface SlashCommandData {
+  /** Full slash command name including leading '/', e.g. '/tk:start' */
+  name: string;
+  /** ms epoch when the command was invoked */
+  startTime: number;
+}
+
+/**
  * Burn rate data - tokens consumed per minute
  * @invariant tokensPerMinute >= 0 (enforced in widget)
  */
@@ -801,7 +814,8 @@ export type WidgetData =
   | PeakHoursData
   | TagStatusData
   | TeamkitData
-  | AgentModeData;
+  | AgentModeData
+  | SlashCommandData;
 
 /**
  * Transcript entry from JSONL file
@@ -855,6 +869,8 @@ export interface ParsedTranscript {
   pendingTaskCreates: Map<string, { subject: string; status: string; seqId: string }>;
   /** Pending TaskUpdate tool_use IDs */
   pendingTaskUpdates: Map<string, { taskId: string; status?: string; subject?: string }>;
+  /** Most recent slash command invoked by the user (e.g. '/tk:start'). Null when cleared. */
+  activeSlashCommand: { name: string; startTime: number } | null;
 }
 
 /**

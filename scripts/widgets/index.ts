@@ -55,6 +55,7 @@ import { peakHoursWidget } from './peak-hours.js';
 import { tagStatusWidget } from './tag-status.js';
 import { teamkitWidget } from './teamkit.js';
 import { agentModeWidget } from './agent-mode.js';
+import { slashCommandWidget } from './slash-command-activity.js';
 
 /**
  * Widget registry - maps widget IDs to widget implementations
@@ -101,6 +102,7 @@ const widgetRegistry = new Map<WidgetId, Widget>([
   ['tagStatus', tagStatusWidget],
   ['teamkit', teamkitWidget],
   ['agentMode', agentModeWidget],
+  ['slashCommand', slashCommandWidget],
 ] as [WidgetId, Widget][]);
 
 /**

@@ -67,6 +67,7 @@ import { vimModeWidget } from '../widgets/vim-mode.js';
 import { apiDurationWidget } from '../widgets/api-duration.js';
 import { peakHoursWidget, isPeakTime, getMinutesToTransition } from '../widgets/peak-hours.js';
 import { tagStatusWidget } from '../widgets/tag-status.js';
+import { slashCommandWidget } from '../widgets/slash-command-activity.js';
 import * as codexClient from '../utils/codex-client.js';
 import * as zaiClient from '../utils/zai-api-client.js';
 import * as historyParser from '../utils/history-parser.js';
@@ -2470,6 +2471,76 @@ describe('widgets', () => {
       const result = apiDurationWidget.render({ percentage: 45 }, ctx);
       expect(result).toContain('API');
       expect(result).toContain('45%');
+    });
+  });
+
+  describe('slashCommandWidget', () => {
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should have correct id and name', () => {
+      expect(slashCommandWidget.id).toBe('slashCommand');
+      expect(slashCommandWidget.name).toBe('Slash Command');
+    });
+
+    it('should return null when no transcript', async () => {
+      vi.spyOn(transcriptParser, 'getTranscript').mockResolvedValue(null);
+      const ctx = createContext();
+      const data = await slashCommandWidget.getData(ctx);
+      expect(data).toBeNull();
+    });
+
+    it('should return null when no active slash command', async () => {
+      vi.spyOn(transcriptParser, 'getTranscript').mockResolvedValue({
+        toolUses: new Map(),
+        completedToolCount: 0,
+        runningToolIds: new Set(),
+        lastTodoWriteInput: null,
+        activeAgentIds: new Set(),
+        completedAgentCount: 0,
+        tasks: new Map(),
+        nextTaskId: 1,
+        pendingTaskCreates: new Map(),
+        pendingTaskUpdates: new Map(),
+        activeSlashCommand: null,
+      });
+
+      const ctx = createContext({ transcript_path: '/tmp/transcript.jsonl' });
+      const data = await slashCommandWidget.getData(ctx);
+      expect(data).toBeNull();
+    });
+
+    it('should return active slash command data', async () => {
+      vi.spyOn(transcriptParser, 'getTranscript').mockResolvedValue({
+        toolUses: new Map(),
+        completedToolCount: 0,
+        runningToolIds: new Set(),
+        lastTodoWriteInput: null,
+        activeAgentIds: new Set(),
+        completedAgentCount: 0,
+        tasks: new Map(),
+        nextTaskId: 1,
+        pendingTaskCreates: new Map(),
+        pendingTaskUpdates: new Map(),
+        activeSlashCommand: { name: '/tk:start', startTime: 1700000000000 },
+      });
+
+      const ctx = createContext({ transcript_path: '/tmp/transcript.jsonl' });
+      const data = await slashCommandWidget.getData(ctx);
+      expect(data).not.toBeNull();
+      expect(data?.name).toBe('/tk:start');
+      expect(data?.startTime).toBe(1700000000000);
+    });
+
+    it('should render with target emoji and command name', () => {
+      const ctx = createContext();
+      const result = slashCommandWidget.render(
+        { name: '/tk:start', startTime: Date.now() },
+        ctx
+      );
+      expect(result).toContain('🎯');
+      expect(result).toContain('/tk:start');
     });
   });
 });

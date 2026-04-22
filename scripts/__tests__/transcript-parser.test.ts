@@ -772,6 +772,44 @@ describe('transcript-parser', () => {
       expect(extractToolTarget('Read', { pattern: 'foo' })).toBeUndefined();
       expect(extractToolTarget('Bash', { file_path: '/x' })).toBeUndefined();
     });
+
+    it('should extract skill name for Skill', async () => {
+      const { extractToolTarget } = await import('../utils/transcript-parser.js');
+      expect(extractToolTarget('Skill', { skill: 'tk:start' })).toBe('tk:start');
+    });
+
+    it('should truncate very long skill names', async () => {
+      const { extractToolTarget } = await import('../utils/transcript-parser.js');
+      const result = extractToolTarget('Skill', {
+        skill: 'superpowers:some-extraordinarily-long-skill-name',
+      });
+      expect(result).toHaveLength(31); // 30 chars + '…'
+      expect(result).toContain('…');
+    });
+
+    it('should return undefined when Skill input has no skill field', async () => {
+      const { extractToolTarget } = await import('../utils/transcript-parser.js');
+      expect(extractToolTarget('Skill', { args: 'hello' })).toBeUndefined();
+    });
+
+    it('should prefer subagent_type for Task', async () => {
+      const { extractToolTarget } = await import('../utils/transcript-parser.js');
+      expect(
+        extractToolTarget('Task', { subagent_type: 'Explore', description: 'find files' })
+      ).toBe('Explore');
+    });
+
+    it('should fall back to description for Task when subagent_type missing', async () => {
+      const { extractToolTarget } = await import('../utils/transcript-parser.js');
+      expect(extractToolTarget('Task', { description: 'research options' })).toBe(
+        'research options'
+      );
+    });
+
+    it('should return undefined for Task with neither field', async () => {
+      const { extractToolTarget } = await import('../utils/transcript-parser.js');
+      expect(extractToolTarget('Task', { prompt: 'x' })).toBeUndefined();
+    });
   });
 
   describe('getRunningTools with targets', () => {
@@ -817,6 +855,110 @@ describe('transcript-parser', () => {
 
       expect(running).toHaveLength(1);
       expect(running[0].target).toBeUndefined();
+    });
+  });
+
+  describe('getActiveSlashCommand', () => {
+    it('should return null when no slash command has been used', async () => {
+      await writeTranscript([
+        {
+          type: 'user',
+          timestamp: '2026-01-01T00:00:00Z',
+          message: { content: [{ type: 'text', text: 'just a plain message' }] },
+        },
+      ]);
+
+      const { parseTranscript, getActiveSlashCommand } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      expect(getActiveSlashCommand(transcript!)).toBeNull();
+    });
+
+    it('should capture a slash command from command-name tag', async () => {
+      await writeTranscript([
+        {
+          type: 'user',
+          timestamp: '2026-01-01T00:00:00Z',
+          message: {
+            content: [
+              { type: 'text', text: '<command-message>tk:start</command-message>\n<command-name>/tk:start</command-name>' },
+            ],
+          },
+        },
+      ]);
+
+      const { parseTranscript, getActiveSlashCommand } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      const active = getActiveSlashCommand(transcript!);
+      expect(active).not.toBeNull();
+      expect(active?.name).toBe('/tk:start');
+      expect(active?.startTime).toBe(new Date('2026-01-01T00:00:00Z').getTime());
+    });
+
+    it('should keep slash command active across tool_result entries', async () => {
+      await writeTranscript([
+        {
+          type: 'user',
+          timestamp: '2026-01-01T00:00:00Z',
+          message: { content: [{ type: 'text', text: '<command-name>/tk:start</command-name>' }] },
+        },
+        {
+          type: 'assistant',
+          timestamp: '2026-01-01T00:00:01Z',
+          message: { content: [{ type: 'tool_use', id: 'b1', name: 'Bash', input: { command: 'ls' } }] },
+        },
+        {
+          type: 'user',
+          timestamp: '2026-01-01T00:00:02Z',
+          message: { content: [{ type: 'tool_result', tool_use_id: 'b1' }] },
+        },
+      ]);
+
+      const { parseTranscript, getActiveSlashCommand } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      expect(getActiveSlashCommand(transcript!)?.name).toBe('/tk:start');
+    });
+
+    it('should clear slash command on next plain user text message', async () => {
+      await writeTranscript([
+        {
+          type: 'user',
+          timestamp: '2026-01-01T00:00:00Z',
+          message: { content: [{ type: 'text', text: '<command-name>/tk:start</command-name>' }] },
+        },
+        {
+          type: 'user',
+          timestamp: '2026-01-01T00:00:05Z',
+          message: { content: [{ type: 'text', text: 'what did you find?' }] },
+        },
+      ]);
+
+      const { parseTranscript, getActiveSlashCommand } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      expect(getActiveSlashCommand(transcript!)).toBeNull();
+    });
+
+    it('should replace with latest slash command when a new one arrives', async () => {
+      await writeTranscript([
+        {
+          type: 'user',
+          timestamp: '2026-01-01T00:00:00Z',
+          message: { content: [{ type: 'text', text: '<command-name>/tk:start</command-name>' }] },
+        },
+        {
+          type: 'user',
+          timestamp: '2026-01-01T00:00:10Z',
+          message: { content: [{ type: 'text', text: 'something' }] },
+        },
+        {
+          type: 'user',
+          timestamp: '2026-01-01T00:00:20Z',
+          message: { content: [{ type: 'text', text: '<command-name>/tk:end</command-name>' }] },
+        },
+      ]);
+
+      const { parseTranscript, getActiveSlashCommand } = await import('../utils/transcript-parser.js');
+      const transcript = await parseTranscript(TEST_FILE);
+      expect(getActiveSlashCommand(transcript!)?.name).toBe('/tk:end');
     });
   });
 });

@@ -38,8 +38,16 @@ function createParsedTranscript(): ParsedTranscript {
     nextTaskId: 1,
     pendingTaskCreates: new Map(),
     pendingTaskUpdates: new Map(),
+    activeSlashCommand: null,
   };
 }
+
+/**
+ * Matches `<command-name>/xxx</command-name>` tags injected by Claude Code
+ * when a user types a slash command. Captures the full name including the
+ * leading slash (e.g. '/tk:start').
+ */
+const SLASH_COMMAND_TAG_RE = /<command-name>([^<]+)<\/command-name>/;
 
 /**
  * Parse JSONL content into transcript entries, skipping malformed lines
@@ -114,6 +122,27 @@ function processEntries(
               });
             }
           }
+        }
+      }
+    }
+
+    // Track slash command from user text blocks. tool_result-only user entries
+    // are ignored so the command stays active across Claude's tool loop.
+    if (entry.type === 'user' && Array.isArray(entry.message?.content)) {
+      const textBlocks = entry.message.content.filter((b) => b.type === 'text' && typeof b.text === 'string');
+      if (textBlocks.length > 0) {
+        let matched: RegExpMatchArray | null = null;
+        for (const block of textBlocks) {
+          const m = block.text!.match(SLASH_COMMAND_TAG_RE);
+          if (m) { matched = m; break; }
+        }
+        if (matched) {
+          existing.activeSlashCommand = {
+            name: matched[1],
+            startTime: entry.timestamp ? new Date(entry.timestamp).getTime() : Date.now(),
+          };
+        } else {
+          existing.activeSlashCommand = null;
         }
       }
     }
@@ -242,6 +271,12 @@ export function extractToolTarget(name: string, input: unknown): string | undefi
       return typeof inp.pattern === 'string' ? truncate(inp.pattern, 20) : undefined;
     case 'Bash':
       return typeof inp.command === 'string' ? truncate(inp.command, 25) : undefined;
+    case 'Skill':
+      return typeof inp.skill === 'string' ? truncate(inp.skill, 30) : undefined;
+    case 'Task':
+      if (typeof inp.subagent_type === 'string') return truncate(inp.subagent_type, 20);
+      if (typeof inp.description === 'string') return truncate(inp.description, 25);
+      return undefined;
     default:
       return undefined;
   }
@@ -276,6 +311,17 @@ export function getRunningTools(
  */
 export function getCompletedToolCount(transcript: ParsedTranscript): number {
   return transcript.completedToolCount;
+}
+
+/**
+ * Get the most recent slash command that started the current turn.
+ * Returns null when no command is active (user hasn't used one or has
+ * sent a plain text message since).
+ */
+export function getActiveSlashCommand(
+  transcript: ParsedTranscript
+): { name: string; startTime: number } | null {
+  return transcript.activeSlashCommand;
 }
 
 /**
