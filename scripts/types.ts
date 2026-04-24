@@ -152,17 +152,21 @@ export type DisplayMode = 'teamkit' | 'compact' | 'normal' | 'detailed' | 'custo
 /**
  * Preset configurations for each display mode
  *
- * teamkit: Teamkit identity + model only (default) - 1 line
+ * teamkit: Teamkit workflow layout (default) - 4 lines
+ *   line 1: identity + model + context + cost + rate limits
+ *   line 2: project + session metadata (id, duration, token speed)
+ *   line 3: burn rate + depletion time + todo progress
+ *   line 4: today cost + lines changed + tool activity + cache + performance
  * compact: Essential metrics - 1 line
  * normal: Essential + project/session/todo - 2 lines
  * detailed: Normal + config/tools/agents (additive) - 6 lines
  */
 export const DISPLAY_PRESETS: Record<Exclude<DisplayMode, 'custom'>, WidgetId[][]> = {
   teamkit: [
-    ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'zaiUsage'],
-    ['projectInfo', 'sessionDuration', 'burnRate'],
-    ['todoProgress', 'toolActivity'],
-    ['slashCommand', 'agentMode', 'agentStatus'],
+    ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d'],
+    ['projectInfo', 'sessionId', 'sessionDuration', 'tokenSpeed'],
+    ['burnRate', 'depletionTime', 'todoProgress'],
+    ['todayCost', 'linesChanged', 'toolActivity', 'cacheHit', 'performance'],
   ],
   compact: [
     ['teamkit', 'model', 'context', 'cost', 'rateLimit5h', 'rateLimit7d', 'rateLimit7dSonnet', 'zaiUsage'],
